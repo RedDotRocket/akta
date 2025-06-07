@@ -82,13 +82,12 @@ def create_did_web(domain, path, output_did_document, output_keys):
         )
     )
 
-    did_document_dict = did_web_instance.did_document  # This is already a dict
     click.echo("\nDID Document:")
-    click.echo(json.dumps(did_document_dict, indent=2))
+    click.echo(json.dumps(did_web_instance.did_document, indent=2))
 
     if output_did_document:
         with open(output_did_document, "w") as f:
-            json.dump(did_document_dict, f, indent=2)
+            json.dump(did_web_instance.did_document, f, indent=2)
         click.echo(
             click.style(f"DID Document saved to {output_did_document}", fg="green")
         )
