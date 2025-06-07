@@ -2,7 +2,7 @@
     <picture>
         <source srcset="./static/akta-logo-dark.png" media="(prefers-color-scheme: dark)">
         <source srcset="./static/akta-logo-light.png" media="(prefers-color-scheme: light)">
-        <img src="./static/akta-logo-dark.png" alt="Akta logo" width="500px">
+        <img src="./static/akta-logo-dark.png" alt="Akta logo" width="400px">
     </picture>
 </div>
 
