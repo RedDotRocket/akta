@@ -1,5 +1,3 @@
-# Akta
-
 <div align="center">
     <picture>
         <source srcset="./static/akta-logo-dark.png" media="(prefers-color-scheme: dark)">
