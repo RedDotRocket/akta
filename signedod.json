@@ -1,0 +1,15 @@
+{
+  "@context": ["https://www.w3.org/2018/credentials/v1"],
+  "id": "http://example.edu/credentials/1872",
+  "type": ["VerifiableCredential", "AlumniCredential"],
+  "issuer": "did:key:issuer",
+  "issuanceDate": "2010-01-01T19:23:24Z",
+  "credentialSubject": {"id": "did:example:123"},
+  "proof": {
+  "type": "Ed25519Signature2020",
+  "created": "2025-06-07T15:40:49.832073Z",
+  "proofPurpose": "assertionMethod",
+  "verificationMethod": "did:key:zINVALIDvqHdiEyATcTfDobPVqWn8rXjy8rhb7dBqmHj1WeRqC#z6MkknvqHdiEyATcTfDobPVqWn8rXjy8rhb7dBqmHj1WeRqC",
+  "proofValue": "INVALIDesLhYiT18CixSs5FQfUmjGREosMZadR1WyLbbb3PHoARxrzG6o3EUbsCyE2Ldpbsk61Lzu7ZtNfdmvKSCFo"
+  }
+}

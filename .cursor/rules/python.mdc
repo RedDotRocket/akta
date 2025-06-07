@@ -1,0 +1,60 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Python specific rules
+
+## Packaging
+- Use uv instead of pip. 
+- uv add library
+- uv run script.py
+- DO NOT create requirements.txt. Use uv add commands.
+- Always seek to use the latest stable version of a package
+
+## Testing
+- Use pytest for testing
+- Write tests for all routes
+- Use pytest-cov for coverage
+- Implement proper fixtures
+- Use proper mocking with pytest-mock
+- Test all error scenarios
+- Always run `pytest` , after writing new tests
+
+
+## Security
+- Implement proper CORS
+- Sanitize all user inputs
+- Use proper session configuration
+- Implement proper logging
+- Follow OWASP guideline
+
+
+## Performance
+- Implement database query optimization
+- Use proper connection pooling
+- Implement proper pagination
+- Use background tasks for heavy operations
+- Monitor application performance
+
+## Error Handling
+- Create custom exception classes
+- Use proper try-except blocks
+- Implement proper logging
+- Return proper error responses
+- Handle edge cases properly
+- Use proper error messages
+
+
+## Documentation
+- Use Google-style docstrings
+- Document all public APIs
+- Keep README.md updated
+- Use proper inline comments
+- Generate API documentation
+- Document environment setup
+
+## Development Workflow
+- Use virtual environments (venv)
+- Use proper CI/CD practices
+- Implement proper logging
