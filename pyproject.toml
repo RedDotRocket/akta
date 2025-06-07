@@ -17,6 +17,7 @@ dependencies = [
     "sqlalchemy>=2.0.41",
     "pytest-mock>=3.14.0",
     "python-json-logger>=3.3.0",
+    "a2a-sdk>=0.2.5",
 ]
 
 [build-system]

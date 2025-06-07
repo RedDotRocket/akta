@@ -4,6 +4,7 @@ from akta.config import settings
 from akta.logging import get_logger, request_id_middleware
 from akta.vdr.database import create_tables as create_vdr_tables
 from akta.vdr.router import router as vdr_router
+from akta.test_agent.router import router as agent_router
 
 logger = get_logger(__name__)
 
@@ -34,7 +35,9 @@ def create_app() -> FastAPI:
 
     api_v1 = APIRouter(prefix="/api/v1", tags=["v1"])
 
-    api_v1.include_router(vdr_router, tags=["VC Store Endpoints"])
+    api_v1.include_router(vdr_router, tags=["Verifiable Credential Registry Endpoints"])
+
+    api_v1.include_router(agent_router, tags=["Agent Endpoints"])
 
     app.include_router(api_v1)
 

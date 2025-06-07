@@ -1,15 +1,17 @@
 import hashlib
+import json
 import socket
 import ssl
-import json
 from typing import Any, Dict, Optional
 from urllib.parse import urlparse
-from nacl.signing import SigningKey
+
 import base58
 import click
-from pydantic import ValidationError
-from pyakta.models import IssuerKeyFileModel
+from nacl.signing import SigningKey, VerifyKey
 from pyakta.credentials import VerifiableCredential
+from pyakta.models import IssuerKeyFileModel
+from pydantic import ValidationError
+
 
 def prepare_issuer_key_file_data(did_data: dict, verification_method: str) -> dict:
     """Prepares the dictionary for an issuer key file from DID data."""
@@ -167,3 +169,32 @@ def get_certificate_details(addr: str) -> Optional[Dict[str, Any]]:
     finally:
         if wrappedSocket:
             wrappedSocket.close()
+
+def get_verify_key_from_multibase(pk_multibase: str) -> VerifyKey:
+    """Decodes a base58check-encoded Ed25519 public key (multibase 'z' prefix)
+    and returns a PyNaCl VerifyKey object.
+    Handles common multicodec prefixes for Ed25519 public keys.
+    """
+    if not pk_multibase:
+        raise ValueError("Public key multibase string cannot be empty.")
+    if not pk_multibase.startswith('z'):
+        raise ValueError(f"Ed25519 publicKeyMultibase '{pk_multibase}' must start with 'z'.")
+
+    multicodec_pubkey = base58.b58decode(pk_multibase[1:]) # Skip 'z'
+
+    # Check for typical Ed25519 multicodec prefixes
+    # 0xed01 for full 34-byte key (prefix + key)
+    # 0xed for 33-byte key (prefix + key, less common for this representation but check)
+    if multicodec_pubkey.startswith(bytes([0xed, 0x01])) and len(multicodec_pubkey) == 34:
+        public_key_bytes = multicodec_pubkey[2:]
+    elif multicodec_pubkey.startswith(bytes([0xed])) and len(multicodec_pubkey) == 33: # Check for 0xed prefix if key is 32 bytes + 1 prefix byte
+        public_key_bytes = multicodec_pubkey[1:]
+    elif len(multicodec_pubkey) == 32: # Assume raw 32-byte key if no recognized prefix and correct length
+        public_key_bytes = multicodec_pubkey
+    else:
+        raise ValueError(f"Invalid Ed25519 multicodec prefix or key length in publicKeyMultibase '{pk_multibase}'. Decoded length: {len(multicodec_pubkey)} bytes.")
+
+    if len(public_key_bytes) != 32:
+        raise ValueError(f"Final public key bytes length is not 32 for Ed25519. Got {len(public_key_bytes)} from '{pk_multibase}'.")
+
+    return VerifyKey(public_key_bytes)
