@@ -1,9 +1,12 @@
 # Akta
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="./static/akta-logo-white.png">
-  <img alt="Akta logo" src="./static/akta-logo-dark.png" width="800px" style="max-width: 100%;">
-</picture>
+<div align="center">
+    <picture>
+        <source srcset="./static/akta-logo-dark.png" media="(prefers-color-scheme: dark)">
+        <source srcset="./static/akta-logo-light.png" media="(prefers-color-scheme: light)">
+        <img src="./static/akta-logo-dark.png" alt="Akta logo" width="500px">
+    </picture>
+</div>
 
 Akta is a prototype project designed to enable secure and verifiable interactions between AI agents. It establishes a robust framework for capability-based access control, allowing agents to confidently delegate tasks and share resources with fine-grained control. The system leverages concepts from Decentralized Identifiers (DIDs) and Verifiable Credentials (VCs) to create a cryptographically secure and auditable environment for autonomous agent operations.
 
