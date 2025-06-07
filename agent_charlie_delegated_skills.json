@@ -1,0 +1,11 @@
+{
+  "id": "did:key:z6MkjF4JyEgFJkp3XaB3XCttHsbNM4mFRLCVSquLBD7zrpL3",
+  "skills": [
+    {"scope": "map:generate", "granted": true}
+  ],
+  "delegationDetails": {
+    "parentVC": "urn:uuid:34060d66-21b2-4617-9d59-a905665328ff",
+    "delegatedBy": "did:key:z6MkjQ1HfTNLuxMRJoafBZxJVaJwwjHwT7RKfCuLgXoArXLH",
+    "validUntil": "2025-12-30T23:59:59Z"
+  }
+}

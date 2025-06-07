@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from fastapi import Request
 
-from src.config import settings
+from akta.config import settings
 
 """
 Configures and provides logging for the application.

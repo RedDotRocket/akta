@@ -23,7 +23,7 @@ def registry():
 )
 @click.option(
     "--vdr-url",
-    default=f"http://{settings.host}:{settings.port}/api/v1/",
+    default=f"http://{settings.host}:{settings.port}/api/v1/vdr",
     show_default=True,
     help="Base URL of the VC Store API.",
 )
@@ -189,4 +189,4 @@ def pull_from_vdr(
     except Exception as e:
         click.echo(
             click.style(f"An unexpected error occurred: {e}", fg="red"), err=True
-        ) 
+        )

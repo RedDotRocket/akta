@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     """
     # Server settings
     host: str = Field(default="0.0.0.0", description="Host to bind the FastAPI server to.")
-    port: int = Field(default=8000, description="Port to bind the FastAPI server to.")
+    port: int = Field(default=8050, description="Port to bind the FastAPI server to.")
     reload: bool = Field(default=False, description="Enable auto-reload for the FastAPI server (for development). Uvicorn's --reload flag.")
 
     # Application metadata

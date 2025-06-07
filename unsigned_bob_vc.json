@@ -1,0 +1,53 @@
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
+  ],
+  "id": "urn:uuid:34060d66-21b2-4617-9d59-a905665328ff",
+  "type": [
+    "VerifiableCredential",
+    "AgentSkillAccess"
+  ],
+  "issuer": "did:key:z6MkwXEESYCEgR74JKghZKQS1ja59VYeisRG7TuJcVCHNkF4",
+  "issuanceDate": "2025-06-07T21:19:55.504624Z",
+  "credentialSubject": {
+    "id": "did:key:z6MkjQ1HfTNLuxMRJoafBZxJVaJwwjHwT7RKfCuLgXoArXLH",
+    "skills": [
+      {
+        "id": "hello_world",
+        "granted": true,
+        "scope": [
+          "hello world"
+        ],
+        "usageLimit": 10,
+        "canDelegate": true
+      },
+      {
+        "id": "quote",
+        "granted": true,
+        "scope": [
+          "quote"
+        ],
+        "usageLimit": 10,
+        "canDelegate": true
+      },
+      {
+        "id": "weather",
+        "granted": true,
+        "scope": [
+          "weather"
+        ],
+        "usageLimit": 10,
+        "canDelegate": true
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "http://localhost:8000/.well-known/agent.json",
+      "type": "AgentCardSnapshot",
+      "description": "AgentCard used for this issuance",
+      "hash": "QmNbpP2QFHHuVvLT2TxXouaqUEgYTuKL9bezDoDvQvSqk5"
+    }
+  ]
+}

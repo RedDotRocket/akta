@@ -1,5 +1,4 @@
 import base64
-import json
 from typing import Optional
 
 import click
@@ -27,7 +26,12 @@ def token():
     type=click.Path(dir_okay=False, writable=True),
     help="Path to save the generated Bearer Token.",
 )
-def generate_token(vc_file_path: str, token_file_path: Optional[str]):
+@click.option(
+    "--raw-token",
+    is_flag=True,
+    help="Print the raw token to stdout instead of saving it to a file.",
+)
+def generate_token(vc_file_path: str, token_file_path: Optional[str], raw_token: bool):
     """Generates a Bearer Token from a signed VC."""
     vc = load_vc_from_file(vc_file_path)
     if not vc:
@@ -57,18 +61,16 @@ def generate_token(vc_file_path: str, token_file_path: Optional[str]):
         # Python's b64encode does not add newlines, so this is equivalent.
         token = base64.b64encode(vc_compact_json.encode("utf-8")).decode("ascii")
 
-        if token_file_path:
+        if token_file_path and not raw_token:
             with open(token_file_path, "w") as f:
                 f.write(token)
             click.echo(
                 click.style(f"Bearer Token saved to {token_file_path}", fg="green")
             )
-        else:
-            click.echo("Generated Bearer Token:")
+        elif raw_token:
             click.echo(click.style(token, fg="cyan"))
-
-        click.echo("\nTo use this token, include it in the Authorization header:")
-        click.echo(click.style("Authorization: Bearer <token>", fg="yellow"))
+        else:
+            click.echo(click.style(token, fg="cyan"))
 
     except Exception as e:
         click.echo(
