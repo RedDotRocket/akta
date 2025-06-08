@@ -64,10 +64,10 @@ generate_keys_if_needed() {
 echo_yellow "===== Akta Delegated VC Workflow Test Script ====="
 echo_yellow "Ensure the Akta server is running on $BASE_URL"
 # Optional: Clean up old files at the start
-# echo_yellow "Cleaning up previous test files..."
-# rm -f "$IA_KEY_FILE" "$AB_KEY_FILE" "$AC_KEY_FILE" \
-#       "$AB_SKILL_SUBJECT_FILE" "$AB_UNSIGNED_VC_FILE" "$AB_SIGNED_VC_FILE" \
-#       "$AC_DELEGATED_SUBJECT_FILE" "$AC_UNSIGNED_VC_FILE" "$AC_SIGNED_VC_FILE"
+echo_yellow "Cleaning up previous test files..."
+rm -f "$IA_KEY_FILE" "$AB_KEY_FILE" "$AC_KEY_FILE" \
+      "$AB_SKILL_SUBJECT_FILE" "$AB_UNSIGNED_VC_FILE" "$AB_SIGNED_VC_FILE" \
+      "$AC_DELEGATED_SUBJECT_FILE" "$AC_UNSIGNED_VC_FILE" "$AC_SIGNED_VC_FILE"
 echo_new_line
 sleep 2
 
@@ -111,7 +111,7 @@ echo "$push_output"
 echo_new_line
 
 echo_yellow "1.6: Pulling AgentBob's VC from the VC Store..."
-pull_output=$(akta registry pull --vc-id "$(jq -r '.id' "$AB_SIGNED_VC_FILE")" --vdr-url "$BASE_URL")
+pull_output=$(akta registry pull --vc-id "$(jq -r '.id' "$AB_SIGNED_VC_FILE")" --vdr-url "$BASE_URL" )
 echo "$pull_output"
 
 # echo_new_line
@@ -189,23 +189,11 @@ echo_green "${AC_SIGNED_VC_FILE} created (contains LDP proof)."
 echo ""
 
 
-# # --- Phase 3: Test API access with AgentCharlie's Delegated VC ---
+# --- Phase 3: Test API access with AgentCharlie's Delegated VC ---
 echo_yellow "--- Phase 3: Test API access with AgentCharlie's Delegated VC ---"
 
 echo_yellow "3.1: Preparing Bearer Token from AgentCharlie's signed VC (${AC_SIGNED_VC_FILE})..."
-# SIGNED_VC_JSON_CHARLIE_DELEGATED=$(cat "$AC_SIGNED_VC_FILE" | jq -c '.') # Compact JSON
-# if [ -z "$SIGNED_VC_JSON_CHARLIE_DELEGATED" ]; then
-#     echo_red "ERROR: Could not read/compact JSON from ${AC_SIGNED_VC_FILE}"
-#     exit 1
-# fi
-# BEARER_TOKEN_CHARLIE_DELEGATED=$(base64url_encode "$SIGNED_VC_JSON_CHARLIE_DELEGATED")
-# if [ -z "$BEARER_TOKEN_CHARLIE_DELEGATED" ]; then
-#     echo_red "ERROR: Could not create Bearer Token from ${AC_SIGNED_VC_FILE}"
-#     exit 1
-# fi
-# echo_green "Bearer Token prepared."
-# # echo "Bearer Token: $BEARER_TOKEN_CHARLIE_DELEGATED" # Uncomment to see token
-BEARER_TOKEN_CHARLIE_DELEGATED=$(akta token generate --vc-file signed_bob_vc.json --raw-token)
+BEARER_TOKEN_CHARLIE_DELEGATED=$(akta token generate --vc-file "$AC_SIGNED_VC_FILE" --raw-token)
 echo "BEARER_TOKEN_CHARLIE_DELEGATED: $BEARER_TOKEN_CHARLIE_DELEGATED"
 
 echo_yellow "3.2: Calling /map/generate API with AgentCharlie's Delegated VC..."
@@ -221,176 +209,166 @@ API_BODY=$(echo "$API_RESPONSE" | sed '$d')
 echo "Response Body: $API_BODY"
 echo "HTTP Status Code: $HTTP_CODE"
 
-# if [ "$HTTP_CODE" -eq 200 ]; then
-#     echo_green "SUCCESS: API call with AgentCharlie's delegated VC succeeded (HTTP $HTTP_CODE)!"
-# else
-#     echo_red "FAILURE: API call with AgentCharlie's delegated VC failed (HTTP $HTTP_CODE)."
-#     exit 1
-# fi
-# echo ""
+if [ "$HTTP_CODE" -eq 200 ]; then
+    echo_green "SUCCESS: API call with AgentCharlie's delegated VC succeeded (HTTP $HTTP_CODE)!"
+else
+    echo_red "FAILURE: API call with AgentCharlie's delegated VC failed (HTTP $HTTP_CODE)."
+    exit 1
+fi
+echo ""
 
-# echo_green "===== All tests for successful delegation passed! ====="
-# echo ""
-# echo_yellow "To test the 'canDelegate: false' scenario, you would:"
-# echo_yellow "1. Modify ${AB_SKILL_SUBJECT_FILE} to set 'canDelegate': false (or remove 'conditions')."
-# echo_yellow "2. Re-run Phase 1 (steps 1.3-1.6) to create and publish a new VC for Bob."
-# echo_yellow "3. Re-run Phase 2 (steps 2.2-2.4) to create a new delegated VC for Charlie pointing to Bob's new non-delegable VC."
-# echo_yellow "4. Re-run Phase 3 (steps 3.1-3.2) and expect an HTTP 403 Forbidden error."
-# echo ""
+echo_green "===== All tests for successful delegation passed! ====="
+echo ""
+echo_yellow "To test the 'canDelegate: false' scenario, you would:"
+echo_yellow "1. Modify ${AB_SKILL_SUBJECT_FILE} to set 'canDelegate': false (or remove 'conditions')."
+echo_yellow "2. Re-run Phase 1 (steps 1.3-1.6) to create and publish a new VC for Bob."
+echo_yellow "3. Re-run Phase 2 (steps 2.2-2.4) to create a new delegated VC for Charlie pointing to Bob's new non-delegable VC."
+echo_yellow "4. Re-run Phase 3 (steps 3.1-3.2) and expect an HTTP 403 Forbidden error."
+echo ""
 
 # # --- Phase 4: Test 'canDelegate: false' scenario ---
-# echo_yellow "===== Phase 4: Test 'canDelegate: false' scenario ====="
+echo_yellow "===== Phase 4: Test 'canDelegate: false' scenario ====="
 # echo ""
 
 # # Define new filenames for this phase to avoid conflicts
-# AB_SKILL_SUBJECT_NO_DELEGATE_FILE="agent_bob_skills_no_delegate.json"
-# AB_UNSIGNED_VC_NO_DELEGATE_FILE="unsigned_bob_vc_no_delegate.json"
-# AB_SIGNED_VC_NO_DELEGATE_FILE="signed_bob_vc_no_delegate.json"
+AB_SKILL_SUBJECT_NO_DELEGATE_FILE="agent_bob_skills_no_delegate.json"
+AB_UNSIGNED_VC_NO_DELEGATE_FILE="unsigned_bob_vc_no_delegate.json"
+AB_SIGNED_VC_NO_DELEGATE_FILE="signed_bob_vc_no_delegate.json"
 
-# AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE="agent_charlie_delegated_skills_from_no_delegate.json"
-# AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE="unsigned_charlie_delegated_vc_from_no_delegate.json"
-# AC_SIGNED_VC_FROM_NO_DELEGATE_FILE="signed_charlie_delegated_vc_from_no_delegate.json"
+AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE="agent_charlie_delegated_skills_from_no_delegate.json"
+AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE="unsigned_charlie_delegated_vc_from_no_delegate.json"
+AC_SIGNED_VC_FROM_NO_DELEGATE_FILE="signed_charlie_delegated_vc_from_no_delegate.json"
 
 
-# echo_yellow "4.1: Preparing credentialSubject JSON for AgentBob's NON-DELEGABLE Skills (${AB_SKILL_SUBJECT_NO_DELEGATE_FILE})..."
-# cat << EOF > "$AB_SKILL_SUBJECT_NO_DELEGATE_FILE"
-# {
-#   "id": "$AB_DID",
-#   "skills": [
-#     {"scope": "map:generate", "granted": true}
-#   ],
-#   "conditions": {
-#     "canDelegate": false,
-#     "validUntil": "2025-12-31T23:59:59Z"
-#   }
-# }
-# EOF
-# echo_green "${AB_SKILL_SUBJECT_NO_DELEGATE_FILE} created."
-# echo ""
+echo_yellow "4.1: Preparing credentialSubject JSON for AgentBob's NON-DELEGABLE Skills (${AB_SKILL_SUBJECT_NO_DELEGATE_FILE})..."
+cat << EOF > "$AB_SKILL_SUBJECT_NO_DELEGATE_FILE"
+{
+  "id": "$AB_DID",
+  "skills": [
+    {"scope": ["map:generate"], "granted": true}
+  ],
+  "conditions": {
+    "canDelegate": false,
+    "validUntil": "2025-12-31T23:59:59Z"
+  }
+}
+EOF
+echo_green "${AB_SKILL_SUBJECT_NO_DELEGATE_FILE} created."
+echo ""
 
-# echo_yellow "4.2: Creating Unsigned NON-DELEGABLE VC for AgentBob (${AB_UNSIGNED_VC_NO_DELEGATE_FILE})..."
-# akta vc create \
-#     --issuer-did "$IA_DID" \
-#     --subject-did "$AB_DID" \
-#     --credential-subject "$AB_SKILL_SUBJECT_NO_DELEGATE_FILE" \
-#     --expiration-days 30 \
-#     --output "$AB_UNSIGNED_VC_NO_DELEGATE_FILE"
-# echo_green "${AB_UNSIGNED_VC_NO_DELEGATE_FILE} created."
-# echo ""
+echo_yellow "4.2: Creating Unsigned NON-DELEGABLE VC for AgentBob (${AB_UNSIGNED_VC_NO_DELEGATE_FILE})..."
+akta claim draft \
+    --method key \
+    --issuer-did "$IA_DID" \
+    --subject-did "$AB_DID" \
+    --credential-subject "$AB_SKILL_SUBJECT_NO_DELEGATE_FILE" \
+    --type VerifiableCredential \
+    --output "$AB_UNSIGNED_VC_NO_DELEGATE_FILE"
+echo_green "${AB_UNSIGNED_VC_NO_DELEGATE_FILE} created."
 
-# echo_yellow "4.3: Issuer signing the NON-DELEGABLE VC for AgentBob (${AB_SIGNED_VC_NO_DELEGATE_FILE})..."
-# akta vc sign \
-#     --vc-file "$AB_UNSIGNED_VC_NO_DELEGATE_FILE" \
-#     --issuer-key-file "$IA_KEY_FILE" \
-#     --verification-method "$IA_VM" \
-#     --output "$AB_SIGNED_VC_NO_DELEGATE_FILE"
-# echo_green "${AB_SIGNED_VC_NO_DELEGATE_FILE} created (contains LDP proof)."
-# echo ""
 
-# echo_yellow "4.4: Publishing AgentBob's NON-DELEGABLE VC to the VC Store..."
-# publish_output_no_delegate=$(akta vc-store publish --vc-file "$AB_SIGNED_VC_NO_DELEGATE_FILE" --store-url "$BASE_URL")
-# echo "$publish_output_no_delegate"
+echo_yellow "4.3: Issuer signing the NON-DELEGABLE VC for AgentBob (${AB_SIGNED_VC_NO_DELEGATE_FILE})..."
+akta claim sign \
+    --vc-file "$AB_UNSIGNED_VC_NO_DELEGATE_FILE" \
+    --issuer-key-file "$IA_KEY_FILE" \
+    --verification-method "$IA_VM" \
+    --output "$AB_SIGNED_VC_NO_DELEGATE_FILE"
+echo_green "${AB_SIGNED_VC_NO_DELEGATE_FILE} created (contains LDP proof)."
+echo ""
 
-# JSON_BODY_EXTRACTED_NO_DELEGATE=$(echo "$publish_output_no_delegate" | awk '/Response Body: {/,/}/ {gsub("Response Body: ", ""); print}')
-# BOB_VC_ID_NO_DELEGATE_FROM_STORE=$(echo "$JSON_BODY_EXTRACTED_NO_DELEGATE" | jq -r '.vc_id // empty')
+echo_yellow "4.4: Publishing AgentBob's NON-DELEGABLE VC to the VC Store..."
+BOB_VC_ID_NO_DELEGATE_FROM_STORE=$(akta registry push --vc-file "$AB_SIGNED_VC_NO_DELEGATE_FILE" --vdr-url "$BASE_URL" --urn-only)
+echo "$push_output_no_delegate"
+# BOB_VC_ID_NO_DELEGATE_FROM_STORE=$(echo "$push_output_no_delegate" | jq -r '.id')
 
-# if [ -z "$BOB_VC_ID_NO_DELEGATE_FROM_STORE" ] || [ "$BOB_VC_ID_NO_DELEGATE_FROM_STORE" == "null" ] || [ "$BOB_VC_ID_NO_DELEGATE_FROM_STORE" == "empty" ]; then
-#     echo_red "ERROR: Could not extract Bob's NON-DELEGABLE VC ID from store publish response."
-#     echo_red "Publish output was:"
-#     echo "$publish_output_no_delegate"
-#     exit 1
-# fi
-# echo_green "AgentBob's NON-DELEGABLE VC published. VC ID from Store: $BOB_VC_ID_NO_DELEGATE_FROM_STORE"
-# echo ""
+if [ -z "$BOB_VC_ID_NO_DELEGATE_FROM_STORE" ]; then
+    echo_red "ERROR: Could not extract Bob's NON-DELEGABLE VC ID from store publish response."
+    echo_red "Publish output was:"
+    echo "$BOB_VC_ID_NO_DELEGATE_FROM_STORE"
+    exit 1
+fi
+echo_green "AgentBob's NON-DELEGABLE VC published. VC ID from Store: $BOB_VC_ID_NO_DELEGATE_FROM_STORE"
+echo ""
 
-# echo_yellow "4.5: Preparing credentialSubject for AgentCharlie, attempting to delegate from Bob's NON-DELEGABLE VC (${AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE})..."
-# cat << EOF > "$AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE"
-# {
-#   "id": "$AC_DID",
-#   "skills": [
-#     {"scope": "map:generate", "granted": true}
-#   ],
-#   "delegationDetails": {
-#     "parentVC": "$BOB_VC_ID_NO_DELEGATE_FROM_STORE",
-#     "delegatedBy": "$AB_DID",
-#     "validUntil": "2025-12-30T23:59:59Z"
-#   }
-# }
-# EOF
-# echo_green "${AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE} created."
-# echo ""
+echo_yellow "4.5: Preparing credentialSubject for AgentCharlie, attempting to delegate from Bob's NON-DELEGABLE VC (${AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE})..."
+cat << EOF > "$AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE"
+{
+  "id": "$AC_DID",
+  "skills": [
+    {"scope": ["map:generate"], "granted": true}
+  ],
+  "delegationDetails": {
+    "parentVC": "$BOB_VC_ID_NO_DELEGATE_FROM_STORE",
+    "delegatedBy": "$AB_DID",
+    "validUntil": "2025-12-30T23:59:59Z"
+  }
+}
+EOF
+echo_green "${AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE} created."
+echo ""
 
-# echo_yellow "4.6: Creating Unsigned (Attempted) Delegated VC for AgentCharlie (${AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE})..."
-# akta vc create \
-#     --issuer-did "$AB_DID" \
-#     --subject-did "$AC_DID" \
-#     --credential-subject "$AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE" \
-#     --type VerifiableCredential --type SkillDelegation \
-#     --output "$AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE"
-# echo_green "${AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE} created."
-# echo ""
+echo_yellow "4.6: Creating Unsigned (Attempted) Delegated VC for AgentCharlie (${AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE})..."
+akta claim draft \
+    --method key \
+    --issuer-did "$AB_DID" \
+    --subject-did "$AC_DID" \
+    --credential-subject "$AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE" \
+    --type VerifiableCredential --type SkillDelegation \
+    --output "$AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE"
+echo_green "${AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE} created."
+echo ""
 
-# echo_yellow "4.7: AgentBob signing the (Attempted) Delegated VC for AgentCharlie (${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE})..."
-# akta vc sign \
-#     --vc-file "$AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE" \
-#     --issuer-key-file "$AB_KEY_FILE" \
-#     --verification-method "$AB_VM" \
-#     --output "$AC_SIGNED_VC_FROM_NO_DELEGATE_FILE"
-# echo_green "${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE} created (contains LDP proof)."
-# echo ""
+echo_yellow "4.7: AgentBob signing the (Attempted) Delegated VC for AgentCharlie (${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE})..."
+akta claim sign \
+    --vc-file "$AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE" \
+    --issuer-key-file "$AB_KEY_FILE" \
+    --verification-method "$AB_VM" \
+    --output "$AC_SIGNED_VC_FROM_NO_DELEGATE_FILE"
+echo_green "${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE} created (contains LDP proof)."
+echo ""
 
-# echo_yellow "4.8: Test API access with AgentCharlie's (INVALID) Delegated VC..."
+echo_yellow "4.8: Preparing Bearer Token from AgentCharlie's signed VC (${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE})..."
+BEARER_TOKEN_CHARLIE_FROM_NO_DELEGATE=$(akta token generate --vc-file "$AC_SIGNED_VC_FROM_NO_DELEGATE_FILE" --raw-token)
+echo ""
 
-# SIGNED_VC_JSON_CHARLIE_FROM_NO_DELEGATE=$(cat "$AC_SIGNED_VC_FROM_NO_DELEGATE_FILE" | jq -c '.') # Compact JSON
-# if [ -z "$SIGNED_VC_JSON_CHARLIE_FROM_NO_DELEGATE" ]; then
-#     echo_red "ERROR: Could not read/compact JSON from ${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE}"
-#     exit 1
-# fi
-# BEARER_TOKEN_CHARLIE_FROM_NO_DELEGATE=$(base64url_encode "$SIGNED_VC_JSON_CHARLIE_FROM_NO_DELEGATE")
-# if [ -z "$BEARER_TOKEN_CHARLIE_FROM_NO_DELEGATE" ]; then
-#     echo_red "ERROR: Could not create Bearer Token from ${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE}"
-#     exit 1
-# fi
-# echo_green "Bearer Token prepared for invalid delegation test."
+echo_yellow "Calling /map/generate API with AgentCharlie's (INVALID) Delegated VC (expecting 403)..."
+API_RESPONSE_NO_DELEGATE=$(curl -s -w "\n%{http_code}" -X POST \
+     -H "Authorization: Bearer $BEARER_TOKEN_CHARLIE_FROM_NO_DELEGATE" \
+     -H "Content-Type: application/json" \
+     -d '{"region": "script_europe_fail", "style": "script_satellite_fail"}' \
+     "$MAP_GENERATE_API_URL")
 
-# echo_yellow "Calling /map/generate API with AgentCharlie's (INVALID) Delegated VC (expecting 403)..."
-# API_RESPONSE_NO_DELEGATE=$(curl -s -w "\n%{http_code}" -X POST \
-#      -H "Authorization: Bearer $BEARER_TOKEN_CHARLIE_FROM_NO_DELEGATE" \
-#      -H "Content-Type: application/json" \
-#      -d '{"region": "script_europe_fail", "style": "script_satellite_fail"}' \
-#      "$MAP_GENERATE_API_URL")
+HTTP_CODE_NO_DELEGATE=$(echo "$API_RESPONSE_NO_DELEGATE" | tail -n1)
+API_BODY_NO_DELEGATE=$(echo "$API_RESPONSE_NO_DELEGATE" | sed '$d')
 
-# HTTP_CODE_NO_DELEGATE=$(echo "$API_RESPONSE_NO_DELEGATE" | tail -n1)
-# API_BODY_NO_DELEGATE=$(echo "$API_RESPONSE_NO_DELEGATE" | sed '$d')
+echo "Response Body (expect 403): $API_BODY_NO_DELEGATE"
+echo "HTTP Status Code (expect 403): $HTTP_CODE_NO_DELEGATE"
 
-# echo "Response Body (expect 403): $API_BODY_NO_DELEGATE"
-# echo "HTTP Status Code (expect 403): $HTTP_CODE_NO_DELEGATE"
+if [ "$HTTP_CODE_NO_DELEGATE" -eq 403 ]; then
+    echo_green "SUCCESS: API call with AgentCharlie's VC (delegated from non-delegable parent) correctly FAILED with HTTP 403 Forbidden!"
+else
+    echo_red "FAILURE: API call with AgentCharlie's VC (delegated from non-delegable parent) returned HTTP $HTTP_CODE_NO_DELEGATE, but expected 403 Forbidden."
+    exit 1
+fi
+echo ""
 
-# if [ "$HTTP_CODE_NO_DELEGATE" -eq 403 ]; then
-#     echo_green "SUCCESS: API call with AgentCharlie's VC (delegated from non-delegable parent) correctly FAILED with HTTP 403 Forbidden!"
-# else
-#     echo_red "FAILURE: API call with AgentCharlie's VC (delegated from non-delegable parent) returned HTTP $HTTP_CODE_NO_DELEGATE, but expected 403 Forbidden."
-#     exit 1
-# fi
-# echo ""
-
-# echo_green "===== All tests, including 'canDelegate: false' scenario, passed! ====="
-# echo ""
+echo_green "===== All tests, including 'canDelegate: false' scenario, passed! ====="
+echo ""
 # # Update cleanup instructions
-# echo_yellow "To clean up ALL generated files, you can uncomment and run the cleanup block below or manually delete:"
-# echo_yellow "Key files: $IA_KEY_FILE, $AB_KEY_FILE, $AC_KEY_FILE"
-# echo_yellow "Successful delegation files: $AB_SKILL_SUBJECT_FILE, $AB_UNSIGNED_VC_FILE, $AB_SIGNED_VC_FILE, $AC_DELEGATED_SUBJECT_FILE, $AC_UNSIGNED_VC_FILE, $AC_SIGNED_VC_FILE"
-# echo_yellow "Non-delegable test files: $AB_SKILL_SUBJECT_NO_DELEGATE_FILE, $AB_UNSIGNED_VC_NO_DELEGATE_FILE, $AB_SIGNED_VC_NO_DELEGATE_FILE, $AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE, $AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE, $AC_SIGNED_VC_FROM_NO_DELEGATE_FILE"
-# echo_yellow "And the vc_store.db file if you want to reset the VC Store."
-# echo ""
+echo_yellow "To clean up ALL generated files, you can uncomment and run the cleanup block below or manually delete:"
+echo_yellow "Key files: $IA_KEY_FILE, $AB_KEY_FILE, $AC_KEY_FILE"
+echo_yellow "Successful delegation files: $AB_SKILL_SUBJECT_FILE, $AB_UNSIGNED_VC_FILE, $AB_SIGNED_VC_FILE, $AC_DELEGATED_SUBJECT_FILE, $AC_UNSIGNED_VC_FILE, $AC_SIGNED_VC_FILE"
+echo_yellow "Non-delegable test files: $AB_SKILL_SUBJECT_NO_DELEGATE_FILE, $AB_UNSIGNED_VC_NO_DELEGATE_FILE, $AB_SIGNED_VC_NO_DELEGATE_FILE, $AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE, $AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE, $AC_SIGNED_VC_FROM_NO_DELEGATE_FILE"
+echo_yellow "And the vc_store.db file if you want to reset the VC Store."
+echo ""
 
 # # Optional: Cleanup generated files
-# echo_yellow "Cleaning up ALL generated files..."
-# rm -f "$IA_KEY_FILE" "$AB_KEY_FILE" "$AC_KEY_FILE" \
-#       "$AB_SKILL_SUBJECT_FILE" "$AB_UNSIGNED_VC_FILE" "$AB_SIGNED_VC_FILE" \
-#       "$AC_DELEGATED_SUBJECT_FILE" "$AC_UNSIGNED_VC_FILE" "$AC_SIGNED_VC_FILE" \
-#       "$AB_SKILL_SUBJECT_NO_DELEGATE_FILE" "$AB_UNSIGNED_VC_NO_DELEGATE_FILE" "$AB_SIGNED_VC_NO_DELEGATE_FILE" \
-#       "$AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE" "$AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE" "$AC_SIGNED_VC_FROM_NO_DELEGATE_FILE"
-# echo_green "Cleanup complete."
+echo_yellow "Cleaning up ALL generated files..."
+rm -f "$IA_KEY_FILE" "$AB_KEY_FILE" "$AC_KEY_FILE" \
+      "$AB_SKILL_SUBJECT_FILE" "$AB_UNSIGNED_VC_FILE" "$AB_SIGNED_VC_FILE" \
+      "$AC_DELEGATED_SUBJECT_FILE" "$AC_UNSIGNED_VC_FILE" "$AC_SIGNED_VC_FILE" \
+      "$AB_SKILL_SUBJECT_NO_DELEGATE_FILE" "$AB_UNSIGNED_VC_NO_DELEGATE_FILE" "$AB_SIGNED_VC_NO_DELEGATE_FILE" \
+      "$AC_DELEGATED_SUBJECT_FROM_NO_DELEGATE_FILE" "$AC_UNSIGNED_VC_FROM_NO_DELEGATE_FILE" "$AC_SIGNED_VC_FROM_NO_DELEGATE_FILE"
+echo_green "Cleanup complete."
 
 exit 0

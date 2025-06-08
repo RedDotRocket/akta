@@ -27,8 +27,25 @@ def registry():
     show_default=True,
     help="Base URL of the VC Store API.",
 )
-def push_to_vdr(vc_file_path: str, vdr_url: str):
+@click.option(
+    "--url-only",
+    is_flag=True,
+    help="Print only the URL of the published VC.",
+)
+@click.option(
+    "--urn-only",
+    is_flag=True,
+    help="Print only the URN (urn:uuid:...) of the published VC, useful for capturing in variables.",
+)
+def push_to_vdr(vc_file_path: str, vdr_url: str, url_only: bool, urn_only: bool):
     """Pushes a signed VC to the VDR."""
+    if url_only and urn_only:
+        click.echo(
+            click.style("Error: --url-only and --urn-only are mutually exclusive.", fg="red"),
+            err=True,
+        )
+        return
+
     try:
         with open(vc_file_path, "r") as f:
             vc_data = json.load(f)
@@ -37,47 +54,77 @@ def push_to_vdr(vc_file_path: str, vdr_url: str):
             vc_data.get("proof", {}).get("proofValue")
             and not vc_data.get("proof", {}).get("jws")
         ):
-            click.echo(
-                click.style(
-                    "Warning: Publishing VC with LDP proof. The VC store might not fully support LDP verification/querying yet.",
-                    fg="yellow",
+            if not urn_only:
+                click.echo(
+                    click.style(
+                        "Warning: Publishing VC with LDP proof. The VC store might not fully support LDP verification/querying yet.",
+                        fg="yellow",
+                    )
                 )
-            )
 
         api_endpoint = f"{vdr_url.rstrip('/')}/vdr"
-        click.echo(f"Attempting to publish VC from {vc_file_path} to {api_endpoint}...")
+        if not urn_only:
+            click.echo(f"Attempting to publish VC from {vc_file_path} to {api_endpoint}...")
 
         # The VC store endpoint expects the VC to be nested under "verifiable_credential" key
         payload_to_send = {"verifiable_credential": vc_data}
+
+        # Add urn-only flag to the request if specified
+        if urn_only:
+            api_endpoint = f"{api_endpoint}?urn_only=true"
 
         response = httpx.post(
             api_endpoint, json=payload_to_send
         )  # Send the structured payload
 
-        click.echo(f"Response Status Code: {response.status_code}")
+        if not urn_only:
+            click.echo(f"Response Status Code: {response.status_code}")
+
         try:
             response_body = response.json()
-            click.echo("Response Body: " + json.dumps(response_body, indent=2))
+
+            # Handle urn-only response mode
+            if urn_only:
+                if response.is_success and response_body.get("vc_id"):
+                    click.echo(response_body.get("vc_id"))
+                else:
+                    click.echo(
+                        click.style(
+                            f"Failed to publish VC: {response_body.get('detail', 'No details provided.')}",
+                            fg="red",
+                        ),
+                        err=True,
+                    )
+                return
+
+            # Regular response handling for non-urn-only mode
+            if not urn_only:
+                click.echo(json.dumps(response_body, indent=2))
+
             if response.is_success and response_body.get("status") == "success":
-                click.echo(click.style("VC published successfully!", fg="green"))
+                if not urn_only:
+                    click.echo(click.style("VC published successfully!", fg="green"))
             elif response.is_success:
-                click.echo(
-                    click.style(
-                        f"VC publish action completed with server message: {response_body.get('message', 'No message.')}",
-                        fg="yellow",
+                if not urn_only:
+                    click.echo(
+                        click.style(
+                            f"VC publish action completed with server message: {response_body.get('message', 'No message.')}",
+                            fg="yellow",
+                        )
                     )
-                )
             else:
-                click.echo(
-                    click.style(
-                        f"Failed to publish VC: {response_body.get('detail', 'No details provided.')}",
-                        fg="red",
+                if not urn_only:
+                    click.echo(
+                        click.style(
+                            f"Failed to publish VC: {response_body.get('detail', 'No details provided.')}",
+                            fg="red",
+                        )
                     )
-                )
         except json.JSONDecodeError:
-            click.echo(
-                click.style(f"Could not decode JSON response: {response.text}", fg="red")
-            )
+            if not urn_only:
+                click.echo(
+                    click.style(f"Could not decode JSON response: {response.text}", fg="red")
+                )
 
     except FileNotFoundError:
         click.echo(

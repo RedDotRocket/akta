@@ -197,9 +197,9 @@ async def _fetch_and_verify_parent_vc(parent_vc_id_ref: str, vc_store_base_url: 
     """Fetches, parses, and verifies a parent VC (signature, expiration, revocation)."""
     parent_vc: Optional[VerifiableCredential] = None
     try:
-        print(f"INFO: Retrieving parent VC {parent_vc_id_ref} from VC store: {vc_store_base_url}/vcs/{parent_vc_id_ref}")
+        print(f"INFO: Retrieving parent VC {parent_vc_id_ref} from VC store: {vc_store_base_url}/{parent_vc_id_ref}")
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{vc_store_base_url}/vcs/{parent_vc_id_ref}")
+            response = await client.get(f"{vc_store_base_url}/{parent_vc_id_ref}")
             response.raise_for_status()
             parent_vc_data = response.json()
             parent_vc = VerifiableCredential.from_dict(parent_vc_data)
@@ -251,11 +251,13 @@ async def _validate_delegation_rules(presented_vc: VerifiableCredential, current
         raise HTTPException(status_code=400, detail="Delegated VC missing required delegationDetails (parentVC, delegatedBy, validUntil).")
 
     if presented_vc.issuer_did != delegated_by_did:
+        print(f"ERROR: Delegation fraud: Issuer of delegated VC ({presented_vc.issuer_did}) does not match delegationDetails.delegatedBy ({delegated_by_did}).")
         raise HTTPException(status_code=403, detail=f"Delegation fraud: Issuer of delegated VC ({presented_vc.issuer_did}) does not match delegationDetails.delegatedBy ({delegated_by_did}).")
 
     try:
         delegation_exp_date = parse_datetime_utc(delegation_valid_until_str)
         if datetime.now(UTC) > delegation_exp_date:
+            print(f"ERROR: Delegation itself has expired as of {delegation_exp_date.isoformat()}.")
             raise HTTPException(status_code=403, detail=f"Delegation itself has expired as of {delegation_exp_date.isoformat()}.")
     except ValueError as e: # Catches errors from parse_datetime_utc
         raise HTTPException(status_code=400, detail=f"Invalid validUntil format in delegationDetails: {e}")
@@ -267,6 +269,7 @@ async def _check_parent_delegation_permission(parent_vc: VerifiableCredential, p
     """Checks if the parent VC permits delegation to the issuer of the presented VC."""
     logger.info(f"INFO: Checking parent VC {parent_vc.id} for delegation permission to {presented_vc_issuer_did}")
     if parent_vc.subject_did != presented_vc_issuer_did:
+        print(f"ERROR: Delegation chain broken: Subject of parent VC ({parent_vc.subject_did}) does not match issuer of delegated VC ({presented_vc_issuer_did}).")
         raise HTTPException(status_code=403, detail=f"Delegation chain broken: Subject of parent VC ({parent_vc.subject_did}) does not match issuer of delegated VC ({presented_vc_issuer_did}).")
 
     try:
@@ -276,9 +279,23 @@ async def _check_parent_delegation_permission(parent_vc: VerifiableCredential, p
         # However, if credentialSubject is malformed specifically for delegation checks, this catches it.
         print(f"ERROR: Parent VC ({parent_vc.id}) credentialSubject format error during delegation permission check: {e}")
         raise HTTPException(status_code=500, detail=f"Parent VC ({parent_vc.id}) credentialSubject malformed for delegation check.")
+    print(f"INFO: Parent VC ({parent_vc.id}) credentialSubject: {parent_cs_model}")
+    print(f"INFO: Parent VC ({parent_vc.id}) conditions: {parent_cs_model.conditions}")
+    
+    delegation_allowed = False
+    # Check for `canDelegate: true` in top-level conditions
+    if parent_cs_model.conditions and parent_cs_model.conditions.get("canDelegate") is True:
+        delegation_allowed = True
+    else:
+        # If not in top-level, check within skills using the raw credentialSubject dict
+        cs_raw = parent_vc.model.credentialSubject
+        if isinstance(cs_raw, dict) and 'skills' in cs_raw and isinstance(cs_raw['skills'], list):
+            if any(isinstance(skill, dict) and skill.get("canDelegate") is True for skill in cs_raw['skills']):
+                delegation_allowed = True
 
-    if not parent_cs_model.conditions or parent_cs_model.conditions.get("canDelegate") is not True:
-        raise HTTPException(status_code=403, detail=f"Delegation not permitted: Parent VC ({parent_vc.id}) does not allow delegation (canDelegate is not true or conditions missing).")
+    if not delegation_allowed:
+        print(f"INFO: Parent VC ({parent_vc.id}) does not allow delegation (canDelegate is not true in conditions or skills).")
+        raise HTTPException(status_code=403, detail=f"Delegation not permitted: Parent VC ({parent_vc.id}) does not allow delegation (canDelegate is not true in conditions or skills).")
 
     # Optional: Check for delegableSkills if that logic is to be enforced here.
     # For now, just checking canDelegate is sufficient as per original logic.
@@ -386,12 +403,15 @@ async def generate_map(params: MapGenerationParams, verified_vc_model: Verifiabl
     print(f"INFO: Presented VC skills: {presented_cs_model.skills}")
     print(f"INFO: Presented VC skills granted: {presented_cs_model.skills[0].granted}")
     print(f"INFO: Presented VC skills scope: {presented_cs_model.skills[0].scope}")
+    # print type of scope
+    print(f"INFO: Type of scope: {type(presented_cs_model.skills[0].scope)}")
     has_scope = any(
         "map:generate" in skill.scope and skill.granted is True
         for skill in presented_cs_model.skills
     )
     print(f"INFO: Has scope: {has_scope}")
     if not has_scope:
+        print(f"ERROR: received skill scope: {presented_cs_model.skills[0].scope}")
         raise HTTPException(status_code=403, detail="Skill 'map:generate' not granted or not found in the presented VC.")
 
     print(f"INFO: /map/generate API call authorized for VC ID: {verified_vc_model.id}, Subject: {presented_cs_model.id}")

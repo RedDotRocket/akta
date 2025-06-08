@@ -220,6 +220,7 @@ akta vc create \
     --output "$AC_UNSIGNED_VC_FILE"
 echo_green "${AC_UNSIGNED_VC_FILE} created."
 
+# Sanity check: cat unsigned_charlie_delegated_vc.json | jq '.issuer' should be Bob's DID
 ISSUER_IN_UNSIGNED_AC_VC=$(jq -r '.issuer' "$AC_UNSIGNED_VC_FILE")
 if [ "$ISSUER_IN_UNSIGNED_AC_VC" != "$AB_DID" ]; then
     echo_red "ERROR: Issuer in ${AC_UNSIGNED_VC_FILE} is ${ISSUER_IN_UNSIGNED_AC_VC}, expected ${AB_DID}!"
@@ -352,8 +353,8 @@ echo_yellow "4.4: Publishing AgentBob's NON-DELEGABLE VC to the VC Store..."
 publish_output_no_delegate=$(akta vc-store publish --vc-file "$AB_SIGNED_VC_NO_DELEGATE_FILE" --store-url "$VC_STORE_API_URL")
 echo "$publish_output_no_delegate"
 
-JSON_BODY_EXTRACTED_NO_DELEGATE=$(echo "$publish_output_no_delegate" | awk '/Response Body: {/,/}/ {gsub("Response Body: ", ""); print}')
-BOB_VC_ID_NO_DELEGATE_FROM_STORE=$(echo "$JSON_BODY_EXTRACTED_NO_DELEGATE" | jq -r '.vc_id // empty')
+# Extract the VC ID directly using grep and sed
+BOB_VC_ID_NO_DELEGATE_FROM_STORE=$(echo "$publish_output_no_delegate" | grep -o '"vc_id": *"[^"]*"' | sed 's/"vc_id": *"\([^"]*\)"/\1/')
 
 if [ -z "$BOB_VC_ID_NO_DELEGATE_FROM_STORE" ] || [ "$BOB_VC_ID_NO_DELEGATE_FROM_STORE" == "null" ] || [ "$BOB_VC_ID_NO_DELEGATE_FROM_STORE" == "empty" ]; then
     echo_red "ERROR: Could not extract Bob's NON-DELEGABLE VC ID from store publish response."
@@ -409,6 +410,7 @@ if [ -z "$SIGNED_VC_JSON_CHARLIE_FROM_NO_DELEGATE" ]; then
     echo_red "ERROR: Could not read/compact JSON from ${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE}"
     exit 1
 fi
+
 BEARER_TOKEN_CHARLIE_FROM_NO_DELEGATE=$(base64url_encode "$SIGNED_VC_JSON_CHARLIE_FROM_NO_DELEGATE")
 if [ -z "$BEARER_TOKEN_CHARLIE_FROM_NO_DELEGATE" ]; then
     echo_red "ERROR: Could not create Bearer Token from ${AC_SIGNED_VC_FROM_NO_DELEGATE_FILE}"

@@ -1,7 +1,7 @@
 import json
 from typing import Optional, Dict
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from akta.config import settings
@@ -31,6 +31,7 @@ def verify_api_key(x_api_key: Optional[str] = Header(None)):
 @router.post("/vdr", response_model=vdr_schemas.VCPublishResponse)
 async def publish_vc(
     vc_publish_request: vdr_schemas.VCPublishRequest,
+    urn_only: bool = Query(False, description="Return only the URN of the published VC"),
     db: Session = Depends(get_db),
     #_=Depends(verify_api_key) # Uncomment to enable API key check
 ):
@@ -38,6 +39,7 @@ async def publish_vc(
     Publishes a new Verifiable Credential (LDP) to the store.
 
     - **verifiable_credential**: The full LDP Verifiable Credential as a JSON object (dict).
+    - **urn_only** (query param): If true, returns only the VC ID (URN) without additional response data.
 
     *Protected endpoint (conceptual API key check commented out for now).*
     """
@@ -59,6 +61,12 @@ async def publish_vc(
 
         # Idempotency: If same VC ID and content, consider it a success
         if existing_ldp_vc_data == ldp_vc_data:
+            # Return simplified response if urn_only flag is set
+            if urn_only:
+                return vdr_schemas.VCPublishResponse(
+                    status="success",
+                    vc_id=vc_id
+                )
             return vdr_schemas.VCPublishResponse(
                 status="success",
                 vc_id=vc_id,
@@ -82,6 +90,13 @@ async def publish_vc(
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred while publishing the LDP VC: {type(e).__name__}")
 
+    # Return simplified response if urn_only flag is set
+    if urn_only:
+        return vdr_schemas.VCPublishResponse(
+            status="success",
+            vc_id=created_db_vc.vc_id
+        )
+    
     return vdr_schemas.VCPublishResponse(
         status="success",
         vc_id=created_db_vc.vc_id,
