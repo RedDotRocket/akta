@@ -4,11 +4,9 @@ set -e # Exit immediately if a command exits with a non-zero status.
 # set -x # Debug mode: print each command before executing (optional)
 
 # --- Configuration ---
-AGENT_BASE_URL="http://localhost:8000"
-VDR_BASE_URL="http://localhost:8050"
-VDR_API_URL="${VDR_BASE_URL}/api/v1"
-MAP_GENERATE_API_URL="${AGENT_BASE_URL}/api/v1/agent/map/generate"
-AGENTCARD_URL="${AGENT_BASE_URL}/.well-known/agent.json"
+BASE_URL="http://localhost:8050/api/v1"
+MAP_GENERATE_API_URL="${BASE_URL}/map/generate"
+AGENTCARD_URL="${BASE_URL}/.well-known/agent.json"
 
 # File names
 IA_KEY_FILE="issuer.key"
@@ -105,15 +103,15 @@ akta claim sign \
 
 echo_new_line
 
-echo_yellow "1.6: Publishing AgentBob's VC to the VC Store (${VDR_API_URL})..."
+echo_yellow "1.6: Publishing AgentBob's VC to the VC Store (${BASE_URL})..."
 
-push_output=$(akta registry push --vc-file "$AB_SIGNED_VC_FILE" --vdr-url "$VDR_API_URL")
+push_output=$(akta registry push --vc-file "$AB_SIGNED_VC_FILE" --vdr-url "$BASE_URL")
 echo "$push_output"
 
 echo_new_line
 
 echo_yellow "1.6: Pulling AgentBob's VC from the VC Store..."
-pull_output=$(akta registry pull --vc-id "$(jq -r '.id' "$AB_SIGNED_VC_FILE")" --vdr-url "$VDR_API_URL")
+pull_output=$(akta registry pull --vc-id "$(jq -r '.id' "$AB_SIGNED_VC_FILE")" --vdr-url "$BASE_URL")
 echo "$pull_output"
 
 # echo_new_line
@@ -142,7 +140,13 @@ cat << EOF > "$AC_DELEGATED_SUBJECT_FILE"
 {
   "id": "$AC_DID",
   "skills": [
-    {"scope": "map:generate", "granted": true}
+    {
+      "scope": [
+        "map:generate"
+      ],
+      "granted": true,
+      "usageLimit": 10
+    }
   ],
   "delegationDetails": {
     "parentVC": "$BOB_VC_ID_FROM_STORE",
@@ -284,7 +288,7 @@ echo "HTTP Status Code: $HTTP_CODE"
 # echo ""
 
 # echo_yellow "4.4: Publishing AgentBob's NON-DELEGABLE VC to the VC Store..."
-# publish_output_no_delegate=$(akta vc-store publish --vc-file "$AB_SIGNED_VC_NO_DELEGATE_FILE" --store-url "$VDR_API_URL")
+# publish_output_no_delegate=$(akta vc-store publish --vc-file "$AB_SIGNED_VC_NO_DELEGATE_FILE" --store-url "$BASE_URL")
 # echo "$publish_output_no_delegate"
 
 # JSON_BODY_EXTRACTED_NO_DELEGATE=$(echo "$publish_output_no_delegate" | awk '/Response Body: {/,/}/ {gsub("Response Body: ", ""); print}')

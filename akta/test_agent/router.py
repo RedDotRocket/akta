@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 from datetime import UTC, datetime
 from typing import Optional
 
@@ -25,6 +26,8 @@ from a2a.types import (
 
 from akta.config import settings
 from akta.utils import get_verify_key_from_multibase
+
+logger = logging.getLogger(__name__)
 
 
 async def _resolve_did_key_verification_method(verification_method_url: str) -> VerifyKey:
@@ -86,7 +89,7 @@ async def _resolve_verification_key(verification_method_url: str) -> VerifyKey:
             identifier_after_prefix = did_string_no_fragment[len("did:web:"):]
 
             did_doc_url = await _construct_did_web_url(identifier_after_prefix)
-            print(f"INFO: Attempting to fetch DID Document from: {did_doc_url}")
+            logger.info(f"INFO: Attempting to fetch DID Document from: {did_doc_url}")
 
             return await _resolve_did_web_verification_method(verification_method_url, did_doc_url)
         else:
@@ -233,6 +236,7 @@ async def _fetch_and_verify_parent_vc(parent_vc_id_ref: str, vc_store_base_url: 
 
 async def _validate_delegation_rules(presented_vc: VerifiableCredential, current_cs_model: CredentialSubjectWithSkillsModel):
     """Validates the delegation rules specified in the presented VC's credentialSubject."""
+    logger.info(f"INFO: Validating delegation rules for presented VC {presented_vc.id}")
     if not current_cs_model.delegationDetails:
         # This indicates it's not a delegated VC, or details are missing.
         # The calling function should handle this (e.g., return presented_vc as is).
@@ -261,6 +265,7 @@ async def _validate_delegation_rules(presented_vc: VerifiableCredential, current
 
 async def _check_parent_delegation_permission(parent_vc: VerifiableCredential, presented_vc_issuer_did: str):
     """Checks if the parent VC permits delegation to the issuer of the presented VC."""
+    logger.info(f"INFO: Checking parent VC {parent_vc.id} for delegation permission to {presented_vc_issuer_did}")
     if parent_vc.subject_did != presented_vc_issuer_did:
         raise HTTPException(status_code=403, detail=f"Delegation chain broken: Subject of parent VC ({parent_vc.subject_did}) does not match issuer of delegated VC ({presented_vc_issuer_did}).")
 
@@ -284,6 +289,7 @@ async def verify_delegated_ldp_vc(presented_vc: VerifiableCredential) -> Verifia
     Verifies a delegated LDP VC, including its delegation chain.
     Assumes presented_vc's own signature and basic validity (expiration, revocation) have been checked.
     """
+    logger.info(f"INFO: Verifying delegated LDP VC {presented_vc.id}")
     if not presented_vc.model or not presented_vc.model.credentialSubject:
         raise HTTPException(status_code=400, detail="Presented VC model or credentialSubject is missing for delegation check.")
 
@@ -317,6 +323,7 @@ async def get_final_verified_vc(vc: VerifiableCredential = Depends(get_verified_
     and then performs delegation chain verification if applicable.
     Returns the Pydantic model of the *presented* VC if all checks pass.
     """
+    logger.info(f"INFO: Getting final verified VC for {vc.id}")
     final_vc_instance = await verify_delegated_ldp_vc(vc)
     if not final_vc_instance.model:
         # Should not happen if verify_delegated_ldp_vc succeeds and returns a valid VC instance
@@ -328,41 +335,37 @@ async def get_final_verified_vc(vc: VerifiableCredential = Depends(get_verified_
 router = APIRouter()
 
 agent_card = AgentCard(
-            name="Quote Agent",
-            description="This agent will give you a random quote",
-            iconUrl="https://example.com/icon.png",
-            url="https://example.com",
-            version="1.0.0",
-            provider=AgentProvider(
-                organization="John Doe", url="https://example.com"
-            ),
-            capabilities=AgentCapabilities(),
-            skills=[
-                AgentSkill(
-                    id='hello_world',
-                    name='Returns hello world',
-                    description='just returns hello world',
-                    tags=['hello world'],
-                    examples=['hi', 'hello world'],
+                name="Map Agent",
+                description="This agent will give you a map of the region you ask for",
+                url="http://localhost:8050",
+                provider=AgentProvider(
+                    organization="Google, Inc.", url="https://google.com"
                 ),
-                AgentSkill(
-                    id='quote',
-                    name='Returns a random quote',
-                    description='Returns a random quote',
-                    tags=['quote'],
-                    examples=['quote'],
+                iconUrl="https://georoute-agent.example.com/icon.png",
+                version="1.0.0",
+                documentationUrl="http://localhost:8050/docs",
+                capabilities=AgentCapabilities(
+                    streaming=False,
+                    pushNotifications=False,
+                    stateTransitionHistory=False,
                 ),
-                AgentSkill(
-                    id='weather',
-                    name='Returns the weather',
-                    description='Returns the weather',
-                    tags=['weather'],
-                    examples=['weather'],
-                ),
-            ],
-            defaultInputModes=['text'],
-            defaultOutputModes=['text'],
-)
+                securitySchemes={"bearerAuth": {"type": "http", "scheme": "bearer"}},
+                defaultInputModes=['text'],
+                defaultOutputModes=['text'],
+
+                skills=[
+                    AgentSkill(
+                        id='google-maps',
+                        name='Generate a map of the region you ask for',
+                        description='Generate a map of the region you ask for',
+                        tags=['map:generate'],
+                        examples=['generate a map of the declared region'],
+                        inputModes=['text'],
+                        outputModes=['text'],
+                    )
+                ],
+                supportsAuthenticatedExtendedCard=False,
+            )
 
 @router.get("/.well-known/agent.json")
 async def get_agent_card(request: Request) -> dict:
@@ -374,15 +377,20 @@ async def generate_map(params: MapGenerationParams, verified_vc_model: Verifiabl
     # verified_vc_model is the Pydantic model of the *presented* VC, after all checks.
 
     # Skill/Scope Check on the (potentially delegated) verified VC model
+    logger.info(f"INFO: Generating map with params: {params}")
     try:
         presented_cs_model = CredentialSubjectWithSkillsModel(**verified_vc_model.credentialSubject)
     except (ValidationError, TypeError) as e:
         raise HTTPException(status_code=400, detail=f"Presented VC credentialSubject format error after verification: {e}")
-
+    print(f"INFO: Presented VC credentialSubject: {presented_cs_model}")
+    print(f"INFO: Presented VC skills: {presented_cs_model.skills}")
+    print(f"INFO: Presented VC skills granted: {presented_cs_model.skills[0].granted}")
+    print(f"INFO: Presented VC skills scope: {presented_cs_model.skills[0].scope}")
     has_scope = any(
-        skill.scope == "map:generate" and skill.granted is True
+        "map:generate" in skill.scope and skill.granted is True
         for skill in presented_cs_model.skills
     )
+    print(f"INFO: Has scope: {has_scope}")
     if not has_scope:
         raise HTTPException(status_code=403, detail="Skill 'map:generate' not granted or not found in the presented VC.")
 

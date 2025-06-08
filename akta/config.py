@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="Enable auto-reload for the FastAPI server (for development). Uvicorn's --reload flag.")
 
     # Application metadata
-    app_name: str = Field(default="My CLI-Server App", description="Application name, used for logging and potentially other display purposes.")
+    app_name: str = Field(default="Akta Test Agent", description="Application name, used for logging and potentially other display purposes.")
 
     # Operational settings
     debug: bool = Field(default=False, description="Enable debug mode. This might affect logging verbosity and FastAPI debug features.")
