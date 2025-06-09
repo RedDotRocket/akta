@@ -49,28 +49,25 @@ def test_generate_token_unsigned_vc(tmp_path):
 
 
 def test_generate_token_stdout(tmp_path):
-    """Test token generate with a signed VC, printing to stdout."""
+    """Test token generate with a signed VC, printing raw token to stdout."""
     runner = CliRunner()
     vc_file = tmp_path / "signed_vc.json"
     vc_file.write_text(json.dumps(SIGNED_VC))
 
-    result = runner.invoke(token, ["generate", "--vc-file", str(vc_file)])
+    result = runner.invoke(token, ["generate", "--vc-file", str(vc_file), "--raw-token"])
 
     assert result.exit_code == 0
-    assert "Generated Bearer Token:" in result.output
-    
-    # Check that the output token is the base64 encoded VC
-    token_from_output = result.output.splitlines()[1]
-    expected_token = base64.b64encode(
-        json.dumps(SIGNED_VC, separators=(",", ":"), sort_keys=True).encode("utf-8")
-    ).decode("ascii")
-    # To fix the test, we need to load the VC from the file, let the app generate the token,
-    # and then compare the app's output with a token generated from the same serialization the app uses.
+    # With --raw-token, only the token should be printed.
+    # The output will have a newline, so we strip it.
+    token_from_output = result.output.strip()
+
+    # The token generation uses Pydantic's `model_dump_json` for compact serialization.
+    # We must replicate this to get the correct expected token.
     vc_model = VerifiableCredentialModel.model_validate(SIGNED_VC)
     vc_compact_json = vc_model.model_dump_json(exclude_none=True)
-    expected_token_from_model = base64.b64encode(vc_compact_json.encode("utf-8")).decode("ascii")
+    expected_token = base64.b64encode(vc_compact_json.encode("utf-8")).decode("ascii")
 
-    assert token_from_output == expected_token_from_model
+    assert token_from_output == expected_token
 
 
 def test_generate_token_file_output(tmp_path):
@@ -93,4 +90,4 @@ def test_generate_token_file_output(tmp_path):
     vc_compact_json = vc_model.model_dump_json(exclude_none=True)
     expected_token_from_model = base64.b64encode(vc_compact_json.encode("utf-8")).decode("ascii")
 
-    assert token_file.read_text() == expected_token_from_model 
+    assert token_file.read_text() == expected_token_from_model

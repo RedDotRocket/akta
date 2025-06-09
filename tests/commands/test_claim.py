@@ -350,7 +350,6 @@ def test_sign_vc_success(mock_vc, mock_load_key, mocker, tmp_path):
     )
 
     # Assert
-    print(f"result.output test_sign_vc_success: {result.output}")
     assert result.exit_code == 0
     assert "VC signed with LDP and saved" in result.output
     assert output_file.exists()

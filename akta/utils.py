@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import socket
 import ssl
 from typing import Any, Dict, Optional
@@ -11,6 +12,8 @@ from nacl.signing import SigningKey, VerifyKey
 from pyakta.credentials import VerifiableCredential
 from pyakta.models import IssuerKeyFileModel
 from pydantic import ValidationError
+
+logger = logging.getLogger(__name__)
 
 
 def prepare_issuer_key_file_data(did_data: dict, verification_method: str) -> dict:
@@ -96,10 +99,10 @@ def get_certificate_details(addr: str) -> Optional[Dict[str, Any]]:
         parsed_url = urlparse(addr)
         hostname = parsed_url.hostname
         if not hostname:
-            print(f"Could not extract hostname from URL: {addr}")
+            logger.error(f"Could not extract hostname from URL: {addr}")
             return None
     except Exception as e:
-        print(f"Error parsing URL {addr}: {e}")
+        logger.error(f"Error parsing URL {addr}: {e}")
         return None
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -111,32 +114,32 @@ def get_certificate_details(addr: str) -> Optional[Dict[str, Any]]:
         wrappedSocket = context.wrap_socket(sock, server_hostname=hostname)
         wrappedSocket.connect((hostname, 443))
     except socket.gaierror as e:
-        print(f"Could not connect to {hostname} (address error): {e}")
+        logger.error(f"Could not connect to {hostname} (address error): {e}")
         return None
     except socket.timeout:
-        print(f"Connection to {hostname} timed out.")
+        logger.error(f"Connection to {hostname} timed out.")
         return None
     except ssl.SSLCertVerificationError as e:
-        print(f"SSL certificate verification error for {hostname}: {e}")
+        logger.error(f"SSL certificate verification error for {hostname}: {e}")
         return None
     except ConnectionRefusedError:
-        print(f"Connection refused by {hostname}.")
+        logger.error(f"Connection refused by {hostname}.")
         return None
     except Exception as e:
-        print(f"Could not connect to {hostname} or SSL error: {e}")
+        logger.error(f"Could not connect to {hostname} or SSL error: {e}")
         return None
     else:
         der_cert_bin = wrappedSocket.getpeercert(True)
         cert_dict = wrappedSocket.getpeercert()
 
         if der_cert_bin is None or cert_dict is None:
-            print("Could not retrieve complete certificate information (DER binary or dictionary is missing).")
+            logger.error("Could not retrieve complete certificate information (DER binary or dictionary is missing).")
             return None
 
         try:
             thumb_sha256 = hashlib.sha256(der_cert_bin).hexdigest()
         except Exception as e:
-            print(f"Error processing DER certificate binary (for thumbprint): {e}")
+            logger.error(f"Error processing DER certificate binary (for thumbprint): {e}")
             return None
 
         subject_info = cert_dict.get('subject')

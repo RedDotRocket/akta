@@ -194,7 +194,6 @@ echo_yellow "--- Phase 3: Test API access with AgentCharlie's Delegated VC ---"
 
 echo_yellow "3.1: Preparing Bearer Token from AgentCharlie's signed VC (${AC_SIGNED_VC_FILE})..."
 BEARER_TOKEN_CHARLIE_DELEGATED=$(akta token generate --vc-file "$AC_SIGNED_VC_FILE" --raw-token)
-echo "BEARER_TOKEN_CHARLIE_DELEGATED: $BEARER_TOKEN_CHARLIE_DELEGATED"
 
 echo_yellow "3.2: Calling /map/generate API with AgentCharlie's Delegated VC..."
 API_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \

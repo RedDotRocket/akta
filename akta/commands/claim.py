@@ -13,7 +13,8 @@ from pyakta.credentials import VerifiableCredential
 from pyakta.did import resolve_verification_key
 from pydantic import ValidationError
 
-from akta.a2a.models import AgentCard
+from a2a.types import AgentCard
+
 from akta.utils import (
     get_certificate_details,
     load_signing_key_from_file,

@@ -95,21 +95,21 @@ async def _resolve_verification_key(verification_method_url: str) -> VerifyKey:
         else:
             raise ValueError(f"Unsupported DID method in verificationMethod: {verification_method_url}")
     except httpx.HTTPStatusError as e:
-        print(f"HTTP error resolving {verification_method_url}: {e.response.status_code} - {e.response.text}")
+        logger.error(f"HTTP error resolving {verification_method_url}: {e.response.status_code} - {e.response.text}")
         raise HTTPException(status_code=502, detail=f"Error resolving DID document for {verification_method_url}: upstream error.")
     except httpx.RequestError as e:
-        print(f"Request error resolving {verification_method_url}: {e}")
+        logger.error(f"Request error resolving {verification_method_url}: {e}")
         raise HTTPException(status_code=503, detail=f"Could not connect to resolve DID for {verification_method_url}.")
     except (json.JSONDecodeError, ValidationError, ValueError) as e:
-        print(f"Error parsing or validating data for {verification_method_url}: {e}")
+        logger.error(f"Error parsing or validating data for {verification_method_url}: {e}")
         raise HTTPException(status_code=500, detail=f"Invalid data encountered during DID resolution for {verification_method_url}.")
     except Exception as e:
-        print(f"Unexpected error resolving {verification_method_url}: {type(e).__name__} - {e}")
+        logger.error(f"Unexpected error resolving {verification_method_url}: {type(e).__name__} - {e}")
         raise HTTPException(status_code=500, detail=f"Unexpected error resolving verification key for {verification_method_url}.")
 
 # Placeholder for revocation check - remains the same
 def is_revoked(vc_id: str) -> bool:
-    print(f"INFO: Checking revocation for VC ID: {vc_id} (currently always returns False - placeholder)")
+    logger.info(f"Checking revocation for VC ID: {vc_id} (currently always returns False - placeholder)")
     return False
 
 def parse_datetime_utc(date_str: str) -> datetime:
@@ -126,7 +126,7 @@ async def verify_single_ldp_vc(vc: VerifiableCredential) -> bool:
     """Verifies a single LDP VC's signature. Does not handle delegation chain."""
     if not vc.model or not vc.model.proof or not vc.model.proof.verificationMethod:
         # This should ideally be caught earlier by Pydantic model validation or initial checks
-        print("VC model, proof, or verificationMethod missing in verify_single_ldp_vc")
+        logger.warning("VC model, proof, or verificationMethod missing in verify_single_ldp_vc")
         return False
 
     verification_method_url = vc.model.proof.verificationMethod
@@ -136,10 +136,10 @@ async def verify_single_ldp_vc(vc: VerifiableCredential) -> bool:
             # vc.verify_signature() prints detailed errors
             return False
     except HTTPException as e:
-        print(f"HTTPException during single LDP VC signature verification for {vc.id if vc else 'Unknown VC'}: {e.detail}")
+        logger.error(f"HTTPException during single LDP VC signature verification for {vc.id if vc else 'Unknown VC'}: {e.detail}")
         raise
     except Exception as e:
-        print(f"Error during single LDP VC signature verification for {vc.id if vc else 'Unknown VC'}: {type(e).__name__} - {e}")
+        logger.error(f"Error during single LDP VC signature verification for {vc.id if vc else 'Unknown VC'}: {type(e).__name__} - {e}")
         return False
     return True
 
@@ -189,7 +189,7 @@ async def get_verified_vc_from_auth(authorization: Optional[str] = Header(None))
         if datetime.now(UTC) > exp_date:
             raise HTTPException(status_code=403, detail="Presented VC has expired.")
     # else: Consider policy on VCs missing expirationDate
-    #     print(f"WARN: Presented VC {vc_instance.id} missing 'expirationDate'. Policy might reject this.")
+    #     logger.warning(f"Presented VC {vc_instance.id} missing 'expirationDate'. Policy might reject this.")
 
     return vc_instance
 
@@ -197,7 +197,7 @@ async def _fetch_and_verify_parent_vc(parent_vc_id_ref: str, vc_store_base_url: 
     """Fetches, parses, and verifies a parent VC (signature, expiration, revocation)."""
     parent_vc: Optional[VerifiableCredential] = None
     try:
-        print(f"INFO: Retrieving parent VC {parent_vc_id_ref} from VC store: {vc_store_base_url}/{parent_vc_id_ref}")
+        logger.info(f"Retrieving parent VC {parent_vc_id_ref} from VC store: {vc_store_base_url}/{parent_vc_id_ref}")
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{vc_store_base_url}/{parent_vc_id_ref}")
             response.raise_for_status()
@@ -205,25 +205,25 @@ async def _fetch_and_verify_parent_vc(parent_vc_id_ref: str, vc_store_base_url: 
             parent_vc = VerifiableCredential.from_dict(parent_vc_data)
     except httpx.HTTPStatusError as e:
         # Log original error for server-side details
-        print(f"ERROR: HTTPStatusError while fetching parent VC {parent_vc_id_ref}: {e.response.status_code} - {e.response.text}")
+        logger.error(f"HTTPStatusError while fetching parent VC {parent_vc_id_ref}: {e.response.status_code} - {e.response.text}")
         raise HTTPException(status_code=e.response.status_code, detail=f"Error retrieving parent VC {parent_vc_id_ref} from VC Store.")
     except (json.JSONDecodeError, ValidationError) as e:
-        print(f"ERROR: Parsing/Validation error for parent VC {parent_vc_id_ref}: {e}")
+        logger.error(f"Parsing/Validation error for parent VC {parent_vc_id_ref}: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to parse or validate parent VC {parent_vc_id_ref} from VC Store.")
     except httpx.RequestError as e:
-        print(f"ERROR: RequestError while fetching parent VC {parent_vc_id_ref}: {e}")
+        logger.error(f"RequestError while fetching parent VC {parent_vc_id_ref}: {e}")
         raise HTTPException(status_code=503, detail=f"Could not connect to VC Store to retrieve parent VC {parent_vc_id_ref}.")
 
     if not parent_vc or not parent_vc.model:
         # This case should ideally be covered by the above, but as a safeguard:
-        print(f"ERROR: Parent VC {parent_vc_id_ref} model not loaded successfully.")
+        logger.error(f"Parent VC {parent_vc_id_ref} model not loaded successfully.")
         raise HTTPException(status_code=500, detail=f"Failed to obtain parent VC {parent_vc_id_ref} model after retrieval.")
 
     # Verify the signature of the parent VC
     if not await verify_single_ldp_vc(parent_vc):
         # verify_single_ldp_vc prints details
         raise HTTPException(status_code=403, detail=f"Parent VC (ID: {parent_vc.id}) signature verification failed. Delegation chain broken.")
-    print(f"INFO: Parent VC {parent_vc.id} signature verified.")
+    logger.info(f"Parent VC {parent_vc.id} signature verified.")
 
     # Check parent VC expiration and revocation
     if parent_vc.expiration_date and datetime.now(UTC) > parent_vc.expiration_date:
@@ -236,13 +236,13 @@ async def _fetch_and_verify_parent_vc(parent_vc_id_ref: str, vc_store_base_url: 
 
 async def _validate_delegation_rules(presented_vc: VerifiableCredential, current_cs_model: CredentialSubjectWithSkillsModel):
     """Validates the delegation rules specified in the presented VC's credentialSubject."""
-    logger.info(f"INFO: Validating delegation rules for presented VC {presented_vc.id}")
+    logger.info(f"Validating delegation rules for presented VC {presented_vc.id}")
     if not current_cs_model.delegationDetails:
         # This indicates it's not a delegated VC, or details are missing.
         # The calling function should handle this (e.g., return presented_vc as is).
         return # Or raise a specific error if delegationDetails are strictly expected at this point by caller
 
-    print(f"INFO: Presented VC {presented_vc.id} is a delegated VC. Performing delegation rules validation.")
+    logger.info(f"Presented VC {presented_vc.id} is a delegated VC. Performing delegation rules validation.")
     parent_vc_id_ref = current_cs_model.delegationDetails.get("parentVC")
     delegated_by_did = current_cs_model.delegationDetails.get("delegatedBy")
     delegation_valid_until_str = current_cs_model.delegationDetails.get("validUntil")
@@ -251,13 +251,13 @@ async def _validate_delegation_rules(presented_vc: VerifiableCredential, current
         raise HTTPException(status_code=400, detail="Delegated VC missing required delegationDetails (parentVC, delegatedBy, validUntil).")
 
     if presented_vc.issuer_did != delegated_by_did:
-        print(f"ERROR: Delegation fraud: Issuer of delegated VC ({presented_vc.issuer_did}) does not match delegationDetails.delegatedBy ({delegated_by_did}).")
+        logger.error(f"Delegation fraud: Issuer of delegated VC ({presented_vc.issuer_did}) does not match delegationDetails.delegatedBy ({delegated_by_did}).")
         raise HTTPException(status_code=403, detail=f"Delegation fraud: Issuer of delegated VC ({presented_vc.issuer_did}) does not match delegationDetails.delegatedBy ({delegated_by_did}).")
 
     try:
         delegation_exp_date = parse_datetime_utc(delegation_valid_until_str)
         if datetime.now(UTC) > delegation_exp_date:
-            print(f"ERROR: Delegation itself has expired as of {delegation_exp_date.isoformat()}.")
+            logger.error(f"Delegation itself has expired as of {delegation_exp_date.isoformat()}.")
             raise HTTPException(status_code=403, detail=f"Delegation itself has expired as of {delegation_exp_date.isoformat()}.")
     except ValueError as e: # Catches errors from parse_datetime_utc
         raise HTTPException(status_code=400, detail=f"Invalid validUntil format in delegationDetails: {e}")
@@ -267,9 +267,9 @@ async def _validate_delegation_rules(presented_vc: VerifiableCredential, current
 
 async def _check_parent_delegation_permission(parent_vc: VerifiableCredential, presented_vc_issuer_did: str):
     """Checks if the parent VC permits delegation to the issuer of the presented VC."""
-    logger.info(f"INFO: Checking parent VC {parent_vc.id} for delegation permission to {presented_vc_issuer_did}")
+    logger.info(f"Checking parent VC {parent_vc.id} for delegation permission to {presented_vc_issuer_did}")
     if parent_vc.subject_did != presented_vc_issuer_did:
-        print(f"ERROR: Delegation chain broken: Subject of parent VC ({parent_vc.subject_did}) does not match issuer of delegated VC ({presented_vc_issuer_did}).")
+        logger.error(f"Delegation chain broken: Subject of parent VC ({parent_vc.subject_did}) does not match issuer of delegated VC ({presented_vc_issuer_did}).")
         raise HTTPException(status_code=403, detail=f"Delegation chain broken: Subject of parent VC ({parent_vc.subject_did}) does not match issuer of delegated VC ({presented_vc_issuer_did}).")
 
     try:
@@ -277,10 +277,10 @@ async def _check_parent_delegation_permission(parent_vc: VerifiableCredential, p
     except (ValidationError, TypeError) as e:
         # This error is about the parent VC's structure, which should be valid if it passed earlier checks.
         # However, if credentialSubject is malformed specifically for delegation checks, this catches it.
-        print(f"ERROR: Parent VC ({parent_vc.id}) credentialSubject format error during delegation permission check: {e}")
+        logger.error(f"Parent VC ({parent_vc.id}) credentialSubject format error during delegation permission check: {e}")
         raise HTTPException(status_code=500, detail=f"Parent VC ({parent_vc.id}) credentialSubject malformed for delegation check.")
-    print(f"INFO: Parent VC ({parent_vc.id}) credentialSubject: {parent_cs_model}")
-    print(f"INFO: Parent VC ({parent_vc.id}) conditions: {parent_cs_model.conditions}")
+    logger.info(f"Parent VC ({parent_vc.id}) credentialSubject: {parent_cs_model}")
+    logger.info(f"Parent VC ({parent_vc.id}) conditions: {parent_cs_model.conditions}")
     
     delegation_allowed = False
     # Check for `canDelegate: true` in top-level conditions
@@ -294,19 +294,19 @@ async def _check_parent_delegation_permission(parent_vc: VerifiableCredential, p
                 delegation_allowed = True
 
     if not delegation_allowed:
-        print(f"INFO: Parent VC ({parent_vc.id}) does not allow delegation (canDelegate is not true in conditions or skills).")
+        logger.info(f"Parent VC ({parent_vc.id}) does not allow delegation (canDelegate is not true in conditions or skills).")
         raise HTTPException(status_code=403, detail=f"Delegation not permitted: Parent VC ({parent_vc.id}) does not allow delegation (canDelegate is not true in conditions or skills).")
 
     # Optional: Check for delegableSkills if that logic is to be enforced here.
     # For now, just checking canDelegate is sufficient as per original logic.
-    print(f"INFO: Parent VC ({parent_vc.id}) permits delegation to {presented_vc_issuer_did}.")
+    logger.info(f"Parent VC ({parent_vc.id}) permits delegation to {presented_vc_issuer_did}.")
 
 async def verify_delegated_ldp_vc(presented_vc: VerifiableCredential) -> VerifiableCredential:
     """
     Verifies a delegated LDP VC, including its delegation chain.
     Assumes presented_vc's own signature and basic validity (expiration, revocation) have been checked.
     """
-    logger.info(f"INFO: Verifying delegated LDP VC {presented_vc.id}")
+    logger.info(f"Verifying delegated LDP VC {presented_vc.id}")
     if not presented_vc.model or not presented_vc.model.credentialSubject:
         raise HTTPException(status_code=400, detail="Presented VC model or credentialSubject is missing for delegation check.")
 
@@ -331,7 +331,7 @@ async def verify_delegated_ldp_vc(presented_vc: VerifiableCredential) -> Verifia
     # Optional: Check if the *specific skills* being exercised by presented_vc are permitted by parent_cs_model.conditions.get("delegableSkills", [])
     # This would require comparing skills in current_cs_model with parent_cs_model.conditions.get("delegableSkills", [])
 
-    print(f"INFO: All delegation checks passed for VC {presented_vc.id} (parent: {parent_vc.id}).")
+    logger.info(f"All delegation checks passed for VC {presented_vc.id} (parent: {parent_vc.id}).")
     return presented_vc # Return the originally presented (and now fully verified delegated) VC
 
 async def get_final_verified_vc(vc: VerifiableCredential = Depends(get_verified_vc_from_auth)) -> VerifiableCredentialModel:
@@ -340,7 +340,7 @@ async def get_final_verified_vc(vc: VerifiableCredential = Depends(get_verified_
     and then performs delegation chain verification if applicable.
     Returns the Pydantic model of the *presented* VC if all checks pass.
     """
-    logger.info(f"INFO: Getting final verified VC for {vc.id}")
+    logger.info(f"Getting final verified VC for {vc.id}")
     final_vc_instance = await verify_delegated_ldp_vc(vc)
     if not final_vc_instance.model:
         # Should not happen if verify_delegated_ldp_vc succeeds and returns a valid VC instance
@@ -394,28 +394,27 @@ async def generate_map(params: MapGenerationParams, verified_vc_model: Verifiabl
     # verified_vc_model is the Pydantic model of the *presented* VC, after all checks.
 
     # Skill/Scope Check on the (potentially delegated) verified VC model
-    logger.info(f"INFO: Generating map with params: {params}")
+    logger.info(f"Generating map with params: {params}")
     try:
         presented_cs_model = CredentialSubjectWithSkillsModel(**verified_vc_model.credentialSubject)
     except (ValidationError, TypeError) as e:
         raise HTTPException(status_code=400, detail=f"Presented VC credentialSubject format error after verification: {e}")
-    print(f"INFO: Presented VC credentialSubject: {presented_cs_model}")
-    print(f"INFO: Presented VC skills: {presented_cs_model.skills}")
-    print(f"INFO: Presented VC skills granted: {presented_cs_model.skills[0].granted}")
-    print(f"INFO: Presented VC skills scope: {presented_cs_model.skills[0].scope}")
-    # print type of scope
-    print(f"INFO: Type of scope: {type(presented_cs_model.skills[0].scope)}")
+    logger.info(f"Presented VC credentialSubject: {presented_cs_model}")
+    logger.info(f"Presented VC skills: {presented_cs_model.skills}")
+    logger.info(f"Presented VC skills granted: {presented_cs_model.skills[0].granted}")
+    logger.info(f"Presented VC skills scope: {presented_cs_model.skills[0].scope}")
+    logger.info(f"Type of scope: {type(presented_cs_model.skills[0].scope)}")
     has_scope = any(
         "map:generate" in skill.scope and skill.granted is True
         for skill in presented_cs_model.skills
     )
-    print(f"INFO: Has scope: {has_scope}")
+    logger.info(f"Has scope: {has_scope}")
     if not has_scope:
-        print(f"ERROR: received skill scope: {presented_cs_model.skills[0].scope}")
+        logger.error(f"received skill scope: {presented_cs_model.skills[0].scope}")
         raise HTTPException(status_code=403, detail="Skill 'map:generate' not granted or not found in the presented VC.")
 
-    print(f"INFO: /map/generate API call authorized for VC ID: {verified_vc_model.id}, Subject: {presented_cs_model.id}")
-    print(f"INFO: Map generation requested with region: '{params.region}', style: '{params.style}'.")
+    logger.info(f"/map/generate API call authorized for VC ID: {verified_vc_model.id}, Subject: {presented_cs_model.id}")
+    logger.info(f"Map generation requested with region: '{params.region}', style: '{params.style}'.")
 
     return MapGenerationResponse(
         status=f"✅ Map generation initiated for region: {params.region}, style: {params.style}!",
