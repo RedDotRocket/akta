@@ -59,7 +59,7 @@ AGENT_CARD = {
 }
 
 
-@patch("akta.a2a.models.AgentCard")
+@patch("a2a.types.AgentCard")
 def test_fetch_agentcard_success(mock_agent_card, mocker, tmp_path):
     """Test `claim fetch-agentcard` successful case."""
     mock_agent_card.model_validate.return_value = MagicMock(skills=[MagicMock(name="read")])
@@ -98,7 +98,7 @@ def test_fetch_agentcard_success(mock_agent_card, mocker, tmp_path):
     assert vc_data["credentialSubject"]["skills"][0]["id"] == "hello_world"
 
 
-@patch("akta.a2a.models.AgentCard")
+@patch("a2a.types.AgentCard")
 @patch("akta.commands.claim.get_certificate_details")
 def test_fetch_agentcard_with_tls(mock_get_cert_details, mock_agent_card, mocker, tmp_path):
     """Test `claim fetch-agentcard` with TLS fingerprinting."""
@@ -165,7 +165,7 @@ def test_fetch_agentcard_http_error(mocker, tmp_path):
     assert "Error fetching agent card from https://example.com/agent: Connection error" in result.output
 
 
-@patch("akta.a2a.models.AgentCard")
+@patch("a2a.types.AgentCard")
 @patch("akta.commands.claim.get_certificate_details")
 def test_fetch_agentcard_tls_cn_mismatch(mock_get_cert_details, mock_agent_card, mocker, tmp_path):
     """Test `claim fetch-agentcard` with TLS CN mismatch."""
