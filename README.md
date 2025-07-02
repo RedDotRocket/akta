@@ -21,7 +21,24 @@ cryptographic policy assignment and delegation of those skills.
 
 ## Quick Start
 
-To quickly see Akta in action, you can run the demo script
+To quickly see Akta in action, you can run the demo script or there is a full
+CLI you can use to create keys, issue credentials, and delegate skills etc
+
+```bash
+akta --help
+Usage: akta [OPTIONS] COMMAND [ARGS]...
+
+  Akta - Authenticated Knowledge & Trust Architecture for AI Agents
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  claim     Create and manage Verifiable Credentials using Linked Data...
+  keys      Create and manage keys for DID Documents and Verifiable...
+  registry  Manage Verifiable Credentials in a Verifiable Data Registry
+  token     Generate or verify Bearer Tokens from signed VC
+```
 
 ### Installation
 
@@ -54,12 +71,11 @@ Then run the demo script:
 
 ### What Just Happened?
 
-
 The scenario is that there are three actors: an Issuer (IA), AgentBob (AB), and AgentCharlie (AC). 
 
 Each actor has a Decentralized Identifier (DID). The demo uses `did:key` for simplicity, but Akta supports various DID methods. I did think of creating a `did:agent`, would be a fun idea, but I didn't have time to implement it.
 
-The skills are aroua mocked Google Maps API, where Agent Bob is granted the ability to generate maps, alongside a capability to delegate that map generation to Agent Charlie. I originally planned of having a scenario where two humans wanted to meet, but prefered to keep their locations private, so they Alice delegrates the map generation to Bob, who can then generate a map of the region they ask for and pass it to Chairlie, who can then use it to compute a rendezvous point. This where the w3c "Verifiable Presentation" could be interesting [https://www.w3.org/TR/vc-data-model-2.0/#verifiable-presentations], but I didn't have time to implement that yet! The same holds for Zero Knowledge Proofs [https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs].
+The skills are aroua mocked Google Maps API, where Agent Bob is granted the ability to generate maps, alongside a capability to delegate that map generation to Agent Charlie. I originally planned of having a scenario where two humans wanted to meet, but prefered to keep their locations private, so they Alice delegrates the map generation to Bob, who can then generate a map of the region they ask for and pass it to Chairlie, who can then use it to compute a rendezvous point. This where the w3c ["Verifiable Presentation"]([https://www.w3.org/TR/vc-data-model-2.0/#verifiable-presentations]) could be interesting , but I didn't have time to implement that yet! The same holds for [Zero Knowledge Proofs](https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs)
 
 Side note: I freaking love all this DID stuff, its super cool. It's a shame its not too
 popular, [opinion] and it likely won't be while everything resolves around catering
@@ -145,7 +161,8 @@ There is also a usage limit of 10, meaning Bob can generate maps up to 10 times 
 }
 ```
 
-We also capture evidence of the AgentCard state at the time of issuance, which is useful for auditing and verification purposes.
+We also capture evidence of the AgentCard state at the time of issuance, which is useful for auditing and verification purposes. This is based on the w3c spec
+which definees an evidence object [https://www.w3.org/TR/vc-data-model-2.0/#evidence].
 
 ```json
 --- Evidence ---
