@@ -6,97 +6,239 @@
     </picture>
 </div>
 
-Akta is a prototype project designed to enable secure and verifiable interactions between AI agents. It establishes a robust framework for capability-based access control, allowing agents to confidently delegate tasks and share resources with fine-grained control. The system leverages concepts from Decentralized Identifiers (DIDs) and Verifiable Credentials (VCs) to create a cryptographically secure and auditable environment for autonomous agent operations.
+Akta is a prototype project designed to enable secure and verifiable interactions between AI agents. It establishes a framework for time-bound capability-based access control, allowing agents to delegate tasks and share resources with fine-grained control. The system leverages concepts from Decentralized Identifiers (DIDs) and Verifiable Credentials (VCs) to create a cryptographically and auditable environment for autonomous agent operations.
 
-**Important Note:** *Akta is currently a prototype. The codebase has not undergone a third-party security audit and is not yet considered suitable for production environments. Development will move fast, expect breaking changes, bugs, and other issues.*
+In essence, Akta tries to answer what does a fully autonomous Agent to Agent authorization grant look like with no hoomans around? a.k.a an Agent delegating to another Agent. The human element is derived from owning the entire trust chain, from the root issuer to the agents specific delegated
+skills (to use the A2A termonology).
+
+**Important Note:** *Akta is currently a prototype. The codebase has not undergone a third-party security audit and is not yet considered suitable or secure for production environments. I am not sure what I am doing with the project at the moment, but if your curious in building this out to more, ping me!.*
+
+## A2A Agent Framework
+
+Akta is designed to be used with the A2A Agent Framework. It ingests agent cards
+and uses them to discover skills and capabilities of agents and perform the
+cryptographic policy assignment and delegation of those skills.
 
 ## Quick Start
 
-If you're just looking to get started, go direct to the [Quick Start Guide](./docs/quick_start.md).
-and work through the steps there. You will then be up and running with a working.
-system, and can start to experiment from there.
+To quickly see Akta in action, you can run the demo script
 
-## Multi Framework Support
+### Installation
 
-Akta is designed to be framework agnostic, and supports multiple frameworks out of the box.
+Clone the repository:
 
-### A2A Agent Framework
+```bash
+git clone https://github.com/RedDotRocket/akta.git
+cd akta
+```
 
-Akta is designed to be used with the A2A Agent Framework. It can ingest agent cards
-and use them to issue and verify credentials.
+```bash
+pip install .
+```
 
-### LangChain & LangGraph
+### Running the Demo
 
-Akta is designed to be used with the LangChain and LangGraph frameworks.
+First run the vdr service:
 
-### Microsoft AG2
+```bash
+akta vdr serve
+```
 
-Akta is designed to be used with the Microsoft AG2 framework.
+Then run the demo script:
 
-### Examples
+```bash
+./test_delegation_workflow.sh
+```
 
-See the [examples](./examples) directory for examples of how to use Akta with each framework.
+## Demo Walkthrough
 
-## The Challenge: Trust in Autonomous Agent Ecosystems
+### What Just Happened?
 
-As AI agents become more sophisticated and autonomous, ensuring trustworthy collaboration becomes paramount. How can an agent verify the permissions of another agent? How can an agent securely delegate a subset of its own capabilities to another? How can these interactions be auditable and resistant to tampering? Akta addresses these challenges by providing a standardized mechanism for issuing, verifying, and managing digital credentials that represent agent capabilities.
 
-## Core Concepts and Utility
+The scenario is that there are three actors: an Issuer (IA), AgentBob (AB), and AgentCharlie (AC). 
 
-Akta introduces a specialized Verifiable Credential profile tailored for AI agent skills and authorizations. These credentials serve as digitally signed attestations that an agent possesses certain abilities or rights. Key utilities include:
+Each actor has a Decentralized Identifier (DID). The demo uses `did:key` for simplicity, but Akta supports various DID methods. I did think of creating a `did:agent`, would be a fun idea, but I didn't have time to implement it.
 
-*   **Verifiable Identity with DIDs:** Each agent can possess a cryptographically verifiable identity using Decentralized Identifiers. Akta is designed to be flexible with various DID methods, such as `did:key` for locally generated, self-sovereign identifiers, and `did:web` for associating identities with existing domain names. While methods like `did:key` are inherently decentralized, Akta's framework can also accommodate identity models where DIDs might be anchored or issued by specific authorities if a particular trust framework requires it. The core benefit is secure, unambiguous identification and agent-controlled keys for cryptographic operations.
-*   **Verifiable Capabilities:** Permissions, or "skills," are encoded into Verifiable Credentials. These skills can be highly specific, detailing what actions an agent can perform, on which resources, and under what conditions (e.g., time limitations, usage quotas).
-*   **Secure Storage and Retrieval:** A Verifiable Credential Repository (VC Store) allows agents to publish their credentials and for other agents (or the system itself) to retrieve and verify them. This ensures that credential status can be checked reliably.
-*   **End-to-End Integrity:** All credentials and their proofs (e.g., JWS signatures) are designed to be tamper-evident, ensuring the integrity of the asserted capabilities from issuance to verification.
+The skills are aroua mocked Google Maps API, where Agent Bob is granted the ability to generate maps, alongside a capability to delegate that map generation to Agent Charlie. I originally planned of having a scenario where two humans wanted to meet, but prefered to keep their locations private, so they Alice delegrates the map generation to Bob, who can then generate a map of the region they ask for and pass it to Chairlie, who can then use it to compute a rendezvous point. This where the w3c "Verifiable Presentation" could be interesting [https://www.w3.org/TR/vc-data-model-2.0/#verifiable-presentations], but I didn't have time to implement that yet! The same holds for Zero Knowledge Proofs [https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs].
 
-## Advanced Capability: Secure Delegation of Authority
+Side note: I freaking love all this DID stuff, its super cool. It's a shame its not too
+popular, [opinion] and it likely won't be while everything resolves around catering
+to the big tech companies and whatever works best for their business models. By
+the way, I am new to the spec, so don't eat my head off if I get something wrong, I am still digging into it and learning as I go.
 
-A cornerstone of Akta is its support for secure delegation of capabilities. This allows an agent (the delegator) to grant a subset of its own skills to another agent (the delegatee) for a specific purpose or duration, without compromising its primary credentials.
+So...
 
-The delegation mechanism works as follows:
+It starts with the Issuer grabs hold of Bob's AgentCard (running on http://localhost/.well-known/agent.json), which contains metadata about Bob's capabilities and skills (for the demo we use a map generation skill).
 
-1.  **Issuance of Primary Credential:** An authoritative agent (e.g., a root issuer or an agent with existing capabilities) issues a Verifiable Credential to a primary agent (e.g., Agent A), outlining its skills and specifying whether these skills can be delegated (`canDelegate: true`).
-2.  **Storage of Primary Credential:** Agent A's credential is published to the VC Store, making it discoverable and verifiable.
-3.  **Delegation Act:** If Agent A wishes to delegate a task, it creates a new Verifiable Credential (a "delegated VC"). This new VC:
-    *   Specifies the delegatee agent (e.g., Agent B) as the subject.
-    *   Is issued and signed by Agent A (the delegator).
-    *   References Agent A's parent credential (from which the authority is derived).
-    *   Details the specific skills being delegated (which must be a subset of Agent A's skills) and any new conditions (e.g., a shorter validity period or specific usage limits).
-4.  **Verification of Delegated Authority:** When Agent B presents its delegated VC to perform an action:
-    *   The system first verifies the signature on Agent B's VC (ensuring it was indeed issued by Agent A).
-    *   It then retrieves Agent A's parent VC from the VC Store (using the reference in Agent B's VC).
-    *   It verifies Agent A's parent VC, including its signature and its `canDelegate` status.
-    *   It checks that the skills Agent B is trying to exercise are consistent with both the delegated VC and the parent VC, and that all conditions (like expiration and quotas) are met.
+```python
+curl -s http://127.0.0.1:8050/api/v1/.well-known/agent.json |jq
 
-This chained verification process ensures that any delegated capability can be traced back to an authorized source and that all constraints on delegation are enforced. This enables complex collaboration scenarios where agents can temporarily empower other agents to act on their behalf in a secure and auditable manner.
+{
+  "capabilities": {
+    "pushNotifications": false,
+    "stateTransitionHistory": false,
+    "streaming": false
+  },
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ],
+  "description": "This agent will give you a map of the region you ask for",
+  "documentationUrl": "http://localhost:8050/docs",
+  "name": "Map Agent",
+  "provider": {
+    "organization": "Google, Inc.",
+    "url": "https://google.com"
+  },
+  "securitySchemes": {
+    "bearerAuth": {
+      "scheme": "bearer",
+      "type": "http"
+    }
+  },
+  "skills": [
+    {
+      "description": "Generate a map of the region you ask for",
+      "examples": [
+        "generate a map of the declared region"
+      ],
+      "id": "google-maps",
+      "inputModes": [
+        "text"
+      ],
+      "name": "Generate a map of the region you ask for",
+      "outputModes": [
+        "text"
+      ],
+      "tags": [
+        "map:generate"
+      ]
+    }
+  ],
+  "supportsAuthenticatedExtendedCard": false,
+  "url": "http://localhost:8050",
+  "version": "1.0.0"
+}
+```
 
-## Use Cases and Future Considerations
+It then issues a Verifiable Credential (VC) to Bob, granting him the ability to both use, and delegate his skills (` "canDelegate": true`). This VC is signed by the Issuer and stored in a Verifiable Credential Store (the vdr service you started). `canDelegate` is of course vastly overscopped and over-simplified, i expect in a real world scenario this would reference a policy that defines a list of who can be delegated to etc, and what skills can be delegated, for how long and how many times etc.
 
-Akta is designed for scenarios requiring verifiable, capability-based security for AI agents, such as:
+There is also a usage limit of 10, meaning Bob can generate maps up to 10 times before the credential expires.
 
-*   **Automated Workflows:** Agents can delegate specific sub-tasks to specialized agents, ensuring each only has the permissions necessary for its part of the workflow.
-*   **Resource Sharing with Granular Control:** Agents can grant temporary access to specific resources or data they control to other agents, including defining usage quotas (e.g., limiting the number of times an API can be called).
-*   **Multi-Agent Systems:** In complex systems with numerous interacting agents, Akta can provide a clear and enforceable framework for permissions and authority.
-*   **Foundation for Agent Communication Protocols:** Akta provides the runtime authorization layer for agent interactions. For instance:
-    *   In emerging frameworks like the **Agent-to-Agent (A2A) protocol**, an agent's **AgentCard** (often an `agent.json` file) typically describes the agent and lists its available skills or capabilities. Akta complements this by providing the system for fine-grained, capability-based access control *for those specific skills*.
-    *   If an AgentCard declares that an agent possesses a particular skill (e.g., "skill:processPayment"), an Akta Verifiable Credential (VC) would be the cryptographic token that grants another agent the *actual, verifiable permission* to invoke that payment processing skill. This Akta VC could further specify conditions, such as transaction limits or delegated authority from a primary account holder.
-    *   Thus, Akta VCs operationalize the secure invocation, management, and delegation of skills that are advertised or discovered via mechanisms like AgentCards, ensuring that access is always based on verifiable, unforgeable credentials.
-    *   Integration with protocols like Model Context Protocol (MCP) also remains a potential future direction, where Akta VCs could manage permissions for tools accessed via MCP.
+```json
+--- Credential Subject ---
+{
+  "id": "did:key:z6MkkZPDFLLri7cDFDdwPNrQhuFHfyNNw9HhBuV3UbW6zAbR",
+  "skills": [
+    {
+      "id": "google-maps",
+      "granted": true,
+      "scope": [
+        "map:generate"
+      ],
+      "usageLimit": 10,
+      "canDelegate": true
+    }
+  ]
+}
+```
 
-By focusing on cryptographic verifiability and fine-grained, delegable capabilities, Akta aims to provide a foundational layer of trust for the burgeoning ecosystem of AI agents.
+We also capture evidence of the AgentCard state at the time of issuance, which is useful for auditing and verification purposes.
 
-### Planned Enhancements and Broader Interoperability
+```json
+--- Evidence ---
+[
+  {
+    "id": "http://localhost:8050/api/v1/.well-known/agent.json",
+    "type": "AgentCardSnapshot",
+    "description": "AgentCard used for this issuance",
+    "hash": "QmNcEGxoQZcKzjKcjKPj1ZkPZnT4wSsmBfxuMAq4DUHH2F"
+  }
+]
+```
 
-To further enhance security, transparency, audibility, and reach, future development plans include:
+It is also possible to grab more evidence, with `--tls-fingerprint` and more.
 
-*   **Integration with Sigstore/Rekor:** Leveraging transparency logs like Rekor for publishing and verifying credential issuance events, adding another layer of public auditability.
-*   **Merkle Tree for VC Registry Integrity:** Implementing a Merkle tree or similar cryptographic accumulator for the VC Store to provide strong, verifiable proof of the registry's state and history.
-*   **Support for Agent Frameworks:** Exploring integrations to provide Akta's capability-based security for agents built with popular frameworks such as **LangChain** and **Microsoft Autogen**. This would allow developers using these tools to easily incorporate robust, verifiable permissioning and delegation into their multi-agent systems.
+My idea is these would be stuffed in some sort of merkle tree, so you can prove the state of the AgentCard at the time of issuance. As said, this is a prototype, so I haven't implemented that yet
+and these are not peer reviewed security protocols.
+
+Bob now has a full Verifiable Credential that proves he has the skills to generate maps and can delegate those skills to others. w00t!
+
+```json
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://w3id.org/security/suites/ed25519-2020/v1"
+  ],
+  "id": "urn:uuid:77629d25-8eab-4eab-a048-9faacd6f6246",
+  "type": [
+    "VerifiableCredential",
+    "AgentSkillAccess"
+  ],
+  "issuer": "did:key:z6MkuijvTUcK1VEQDDK66ysxcenkBuvw7Jc56P7wSdCopvR7",
+  "issuanceDate": "2025-07-02T07:47:30.280957Z",
+  "credentialSubject": {
+    "id": "did:key:z6MkkZPDFLLri7cDFDdwPNrQhuFHfyNNw9HhBuV3UbW6zAbR",
+    "skills": [
+      {
+        "id": "google-maps",
+        "granted": true,
+        "scope": [
+          "map:generate"
+        ],
+        "usageLimit": 10,
+        "canDelegate": true
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "http://localhost:8050/api/v1/.well-known/agent.json",
+      "type": "AgentCardSnapshot",
+      "description": "AgentCard used for this issuance",
+      "hash": "QmNcEGxoQZcKzjKcjKPj1ZkPZnT4wSsmBfxuMAq4DUHH2F"
+    }
+  ],
+  "proof": {
+    "type": "Ed25519Signature2020",
+    "created": "2025-07-02T07:47:30.478022Z",
+    "proofPurpose": "assertionMethod",
+    "verificationMethod": "did:key:z6MkuijvTUcK1VEQDDK66ysxcenkBuvw7Jc56P7wSdCopvR7#z6MkuijvTUcK1VEQDDK66ysxcenkBuvw7Jc56P7wSdCopvR7",
+    "proofValue": "5SF3ziGdsGB8h5P9rfj1RL6VBuGFKGMQC7R9G4UTMhj1A2JcsKc7j6i6xwLB8oZxrAFvDLLfiR67bGchnrcV3BD"
+  }
+}
+```
+
+Next Bob (AgentBob) uses his VC to delegate his skills to Agent Charlie. Bob mints a new Verifiable Credential that chains to his original VC, and delegates Charlie the use
+of map generation skills. This delegated VC is also signed by Bob and stored in the VC Store. 
+
+We now have a trust chain of Issuer -> Bob -> Charlie, where Charlie can use the skills granted by Bob, Issuer can revoke Bob's VC, and Bob can revoke Charlie's delegated VC.
+
+Issuer gave Bob generate map skills, Bob delegated those skills to Charlie, and now Charlie can use those skills.
+
+Cheers Bob! You're done for now mate, go grab a cuppa!
+
+Charlie now uses Delegated VC
+
+A Bearer token is created from Charlie’s signed delegated VC. The token is used to call the `/map/generate` API (mocked google maps).
+
+The response is validated — if successful (HTTP 200), delegation worked.
+
+Delegation Denied Scenario
+
+A second VC is issued to Bob with canDelegate: false.
+
+Bob attempts to delegate to Charlie using this new VC.
+
+A delegated VC is created and signed anyway.
+
+Charlie tries to use it, but API returns HTTP 403, proving delegation enforcement works.
 
 ## Contributing
 
-We honestly love getting contributions, from engineers of all levels and background!
+I love getting contributions, from engineers of all levels and background!
 
 Don't be put off contributing, we're all learning as we go and everyone starts
 somewhere.

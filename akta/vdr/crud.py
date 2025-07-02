@@ -3,7 +3,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from pyakta.models import VerifiableCredentialModel as MainVDRSchema
+from akta.models import VerifiableCredentialModel as MainVDRSchema
 from . import models as db_models  # SQLAlchemy models (StoredVCModel)
 
 

@@ -7,8 +7,8 @@ from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from nacl.signing import VerifyKey
-from pyakta.credentials import VerifiableCredential
-from pyakta.models import (
+from akta.credentials import VerifiableCredential
+from akta.models import (
     CredentialSubjectWithSkillsModel,
     DIDDocumentModel,
     MapGenerationParams,

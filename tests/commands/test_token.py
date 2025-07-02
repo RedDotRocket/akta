@@ -2,7 +2,7 @@ import json
 import base64
 from click.testing import CliRunner
 from akta.commands.token import token
-from pyakta.models import VerifiableCredentialModel
+from akta.models import VerifiableCredentialModel
 
 SIGNED_VC = {
     "@context": [
@@ -85,7 +85,7 @@ def test_generate_token_file_output(tmp_path):
     assert f"Bearer Token saved to {token_file}" in result.output
     assert token_file.exists()
 
-    from pyakta.models import VerifiableCredentialModel
+    from akta.models import VerifiableCredentialModel
     vc_model = VerifiableCredentialModel.model_validate(SIGNED_VC)
     vc_compact_json = vc_model.model_dump_json(exclude_none=True)
     expected_token_from_model = base64.b64encode(vc_compact_json.encode("utf-8")).decode("ascii")

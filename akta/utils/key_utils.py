@@ -7,8 +7,8 @@ import base58
 import httpx
 from fastapi import Depends, Header, HTTPException
 from nacl.signing import VerifyKey
-from pyakta.credentials import VerifiableCredential
-from pyakta.models import (
+from credentials import VerifiableCredential
+from models import (
     CredentialSubjectWithSkillsModel,
     DIDDocumentModel,
     VerifiableCredentialModel,

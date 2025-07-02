@@ -2,7 +2,7 @@ import json
 from typing import Optional
 
 import click
-from pyakta.did import DIDKey, DIDWeb
+from akta.did import DIDKey, DIDWeb
 
 from akta.utils import prepare_issuer_key_file_data
 
