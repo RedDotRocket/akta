@@ -9,8 +9,8 @@ from urllib.parse import urlparse
 import base58
 import click
 import httpx
-from pyakta.credentials import VerifiableCredential
-from pyakta.did import resolve_verification_key
+from akta.credentials import VerifiableCredential
+from akta.did import resolve_verification_key
 from pydantic import ValidationError
 
 from a2a.types import AgentCard

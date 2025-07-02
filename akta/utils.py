@@ -9,8 +9,8 @@ from urllib.parse import urlparse
 import base58
 import click
 from nacl.signing import SigningKey, VerifyKey
-from pyakta.credentials import VerifiableCredential
-from pyakta.models import IssuerKeyFileModel
+from akta.credentials import VerifiableCredential
+from akta.models import IssuerKeyFileModel
 from pydantic import ValidationError
 
 logger = logging.getLogger(__name__)
