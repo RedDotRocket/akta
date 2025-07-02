@@ -75,16 +75,18 @@ The scenario is that there are three actors: an Issuer (IA), AgentBob (AB), and 
 
 Each actor has a Decentralized Identifier (DID). The demo uses `did:key` for simplicity, but Akta supports various DID methods. I did think of creating a `did:agent`, would be a fun idea, but I didn't have time to implement it.
 
-The skills are aroua mocked Google Maps API, where Agent Bob is granted the ability to generate maps, alongside a capability to delegate that map generation to Agent Charlie. I originally planned of having a scenario where two humans wanted to meet, but prefered to keep their locations private, so they Alice delegrates the map generation to Bob, who can then generate a map of the region they ask for and pass it to Chairlie, who can then use it to compute a rendezvous point. This where the w3c ["Verifiable Presentation"]([https://www.w3.org/TR/vc-data-model-2.0/#verifiable-presentations]) could be interesting , but I didn't have time to implement that yet! The same holds for [Zero Knowledge Proofs](https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs)
+The skills are based on a mocked Google Maps API, where Agent Bob is granted the ability to generate maps, alongside a capability to delegate that map generation to Agent Charlie. I originally planned of having a scenario where two humans wanted to meet, but prefered to keep their current locations private, so Alice delegrates the map generation to her Agent, Bob, who can then generate a map of the region they ask for and pass it to Agent Charlie, who can then use it to compute a rendezvous point for her Human Jane. This where the w3c ["Verifiable Presentation"]([https://www.w3.org/TR/vc-data-model-2.0/#verifiable-presentations]) could be interesting , but I didn't have time to implement that yet! The same holds for [Zero Knowledge Proofs](https://www.w3.org/TR/vc-data-model-2.0/#zero-knowledge-proofs)
 
 Side note: I freaking love all this DID stuff, its super cool. It's a shame its not too
-popular, [opinion] and it likely won't be while everything resolves around catering
-to the big tech companies and whatever works best for their business models. By
-the way, I am new to the spec, so don't eat my head off if I get something wrong, I am still digging into it and learning as I go.
+popular, [opinion ->] and it likely won't be while everything resolves around catering
+to big tech and whatever works best for their business models. By the way, I am
+new to the spec, so w3c eggheads, please don't eat my head off if I get something
+wrong, I am still digging into it and learning as I go.
 
 So...
 
-It starts with the Issuer grabs hold of Bob's AgentCard (running on http://localhost/.well-known/agent.json), which contains metadata about Bob's capabilities and skills (for the demo we use a map generation skill).
+It all starts with the Issuer, who grabs hold of Agent Bob's AgentCard (running on http://localhost/.well-known/agent.json),
+that contains metadata about Agent Bob's capabilities and skills (for the demo we use a map generation skill).
 
 ```python
 curl -s http://127.0.0.1:8050/api/v1/.well-known/agent.json |jq
